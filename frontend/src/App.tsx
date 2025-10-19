@@ -1,0 +1,552 @@
+import { useState, useEffect } from "react";
+import { Question, Answer, AssessmentResult } from "./types";
+import { fetchQuestions, submitAssessment } from "./api";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Progress } from "@/components/ui/progress";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { CheckCircle2, AlertTriangle, XCircle, Info } from "lucide-react";
+
+type Step = "intro" | "contact" | "assessment" | "results";
+
+interface ContactInfo {
+  company_name: string;
+  contact_name: string;
+  email: string;
+  phone: string;
+  company_size: string;
+  industry: string;
+}
+
+function App() {
+  const [step, setStep] = useState<Step>("intro");
+  const [questions, setQuestions] = useState<Question[]>([]);
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+  const [answers, setAnswers] = useState<Answer[]>([]);
+  const [contactInfo, setContactInfo] = useState<ContactInfo>({
+    company_name: "",
+    contact_name: "",
+    email: "",
+    phone: "",
+    company_size: "",
+    industry: "",
+  });
+  const [result, setResult] = useState<AssessmentResult | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    loadQuestions();
+  }, []);
+
+  const loadQuestions = async () => {
+    try {
+      const data = await fetchQuestions();
+      setQuestions(data);
+    } catch (err) {
+      setError("Failed to load questions. Please refresh the page.");
+    }
+  };
+
+  const handleStartAssessment = () => {
+    setStep("contact");
+  };
+
+  const handleContactSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (
+      contactInfo.company_name &&
+      contactInfo.contact_name &&
+      contactInfo.email &&
+      contactInfo.company_size
+    ) {
+      setStep("assessment");
+    }
+  };
+
+  const handleAnswerSelect = (questionId: string, optionId: string, score: number) => {
+    const existingAnswerIndex = answers.findIndex((a) => a.question_id === questionId);
+    const newAnswer: Answer = {
+      question_id: questionId,
+      answer_value: optionId,
+      score: score,
+    };
+
+    if (existingAnswerIndex >= 0) {
+      const newAnswers = [...answers];
+      newAnswers[existingAnswerIndex] = newAnswer;
+      setAnswers(newAnswers);
+    } else {
+      setAnswers([...answers, newAnswer]);
+    }
+  };
+
+  const handleNext = () => {
+    if (currentQuestionIndex < questions.length - 1) {
+      setCurrentQuestionIndex(currentQuestionIndex + 1);
+    } else {
+      handleSubmit();
+    }
+  };
+
+  const handlePrevious = () => {
+    if (currentQuestionIndex > 0) {
+      setCurrentQuestionIndex(currentQuestionIndex - 1);
+    }
+  };
+
+  const handleSubmit = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const submission = {
+        ...contactInfo,
+        answers: answers,
+      };
+      const assessmentResult = await submitAssessment(submission);
+      setResult(assessmentResult);
+      setStep("results");
+    } catch (err) {
+      setError("Failed to submit assessment. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const currentQuestion = questions[currentQuestionIndex];
+  const currentAnswer = answers.find((a) => a.question_id === currentQuestion?.id);
+  const progress = ((currentQuestionIndex + 1) / questions.length) * 100;
+
+  const getRiskLevelColor = (level: string) => {
+    switch (level) {
+      case "low":
+        return "bg-green-500";
+      case "medium":
+        return "bg-yellow-500";
+      case "high":
+        return "bg-orange-500";
+      case "critical":
+        return "bg-red-500";
+      default:
+        return "bg-gray-500";
+    }
+  };
+
+  const getRiskLevelIcon = (level: string) => {
+    switch (level) {
+      case "low":
+        return <CheckCircle2 className="w-6 h-6 text-green-500" />;
+      case "medium":
+        return <Info className="w-6 h-6 text-yellow-500" />;
+      case "high":
+        return <AlertTriangle className="w-6 h-6 text-orange-500" />;
+      case "critical":
+        return <XCircle className="w-6 h-6 text-red-500" />;
+      default:
+        return null;
+    }
+  };
+
+  const formatCategoryName = (category: string) => {
+    return category
+      .split("_")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
+  };
+
+  if (step === "intro") {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+        <Card className="max-w-2xl w-full">
+          <CardHeader className="text-center">
+            <CardTitle className="text-3xl font-bold text-gray-900">
+              Startup Compliance Health Check
+            </CardTitle>
+            <CardDescription className="text-lg mt-4">
+              Evaluate your HR & labour compliance in just 15 minutes
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="space-y-4">
+              <div className="flex items-start gap-3">
+                <CheckCircle2 className="w-5 h-5 text-green-500 mt-1 flex-shrink-0" />
+                <div>
+                  <h3 className="font-semibold">Comprehensive Assessment</h3>
+                  <p className="text-sm text-gray-600">
+                    15 questions covering all key compliance areas
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <CheckCircle2 className="w-5 h-5 text-green-500 mt-1 flex-shrink-0" />
+                <div>
+                  <h3 className="font-semibold">Instant Results</h3>
+                  <p className="text-sm text-gray-600">
+                    Get your compliance score and personalized recommendations
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-start gap-3">
+                <CheckCircle2 className="w-5 h-5 text-green-500 mt-1 flex-shrink-0" />
+                <div>
+                  <h3 className="font-semibold">Actionable Insights</h3>
+                  <p className="text-sm text-gray-600">
+                    Identify priority areas and get expert guidance
+                  </p>
+                </div>
+              </div>
+            </div>
+            <Button
+              onClick={handleStartAssessment}
+              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
+              size="lg"
+            >
+              Start Assessment
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (step === "contact") {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+        <Card className="max-w-2xl w-full">
+          <CardHeader>
+            <CardTitle className="text-2xl">Your Information</CardTitle>
+            <CardDescription>
+              Please provide your details to receive your assessment results
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleContactSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="company_name">Company Name *</Label>
+                <Input
+                  id="company_name"
+                  value={contactInfo.company_name}
+                  onChange={(e) =>
+                    setContactInfo({ ...contactInfo, company_name: e.target.value })
+                  }
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="contact_name">Your Name *</Label>
+                <Input
+                  id="contact_name"
+                  value={contactInfo.contact_name}
+                  onChange={(e) =>
+                    setContactInfo({ ...contactInfo, contact_name: e.target.value })
+                  }
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email *</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={contactInfo.email}
+                  onChange={(e) =>
+                    setContactInfo({ ...contactInfo, email: e.target.value })
+                  }
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="phone">Phone</Label>
+                <Input
+                  id="phone"
+                  type="tel"
+                  value={contactInfo.phone}
+                  onChange={(e) =>
+                    setContactInfo({ ...contactInfo, phone: e.target.value })
+                  }
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="company_size">Company Size *</Label>
+                <select
+                  id="company_size"
+                  value={contactInfo.company_size}
+                  onChange={(e) =>
+                    setContactInfo({ ...contactInfo, company_size: e.target.value })
+                  }
+                  className="w-full border border-gray-300 rounded-md px-3 py-2"
+                  required
+                >
+                  <option value="">Select size</option>
+                  <option value="1-10">1-10 employees</option>
+                  <option value="11-50">11-50 employees</option>
+                  <option value="51-200">51-200 employees</option>
+                  <option value="201+">201+ employees</option>
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="industry">Industry</Label>
+                <Input
+                  id="industry"
+                  value={contactInfo.industry}
+                  onChange={(e) =>
+                    setContactInfo({ ...contactInfo, industry: e.target.value })
+                  }
+                />
+              </div>
+              <div className="flex gap-3 pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setStep("intro")}
+                  className="flex-1"
+                >
+                  Back
+                </Button>
+                <Button type="submit" className="flex-1 bg-indigo-600 hover:bg-indigo-700">
+                  Continue to Assessment
+                </Button>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (step === "assessment" && currentQuestion) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 py-8">
+        <div className="max-w-3xl mx-auto">
+          <div className="mb-6">
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-sm font-medium text-gray-700">
+                Question {currentQuestionIndex + 1} of {questions.length}
+              </span>
+              <span className="text-sm font-medium text-gray-700">
+                {Math.round(progress)}% Complete
+              </span>
+            </div>
+            <Progress value={progress} className="h-2" />
+          </div>
+
+          <Card>
+            <CardHeader>
+              <Badge className="w-fit mb-2">
+                {formatCategoryName(currentQuestion.category)}
+              </Badge>
+              <CardTitle className="text-xl">{currentQuestion.question_text}</CardTitle>
+              {currentQuestion.help_text && (
+                <CardDescription className="text-base mt-2">
+                  {currentQuestion.help_text}
+                </CardDescription>
+              )}
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <RadioGroup
+                value={currentAnswer?.answer_value || ""}
+                onValueChange={(value) => {
+                  const option = currentQuestion.options?.find((o) => o.id === value);
+                  if (option) {
+                    handleAnswerSelect(currentQuestion.id, value, option.score);
+                  }
+                }}
+              >
+                {currentQuestion.options?.map((option) => (
+                  <div
+                    key={option.id}
+                    className="flex items-center space-x-3 border rounded-lg p-4 hover:bg-gray-50 cursor-pointer"
+                  >
+                    <RadioGroupItem value={option.id} id={option.id} />
+                    <Label
+                      htmlFor={option.id}
+                      className="flex-1 cursor-pointer font-normal"
+                    >
+                      {option.text}
+                    </Label>
+                    <Badge
+                      variant="outline"
+                      className={`${getRiskLevelColor(option.risk_level)} text-white border-0`}
+                    >
+                      {option.risk_level}
+                    </Badge>
+                  </div>
+                ))}
+              </RadioGroup>
+
+              {error && (
+                <Alert variant="destructive">
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+
+              <div className="flex gap-3 pt-4">
+                <Button
+                  variant="outline"
+                  onClick={handlePrevious}
+                  disabled={currentQuestionIndex === 0}
+                  className="flex-1"
+                >
+                  Previous
+                </Button>
+                <Button
+                  onClick={handleNext}
+                  disabled={!currentAnswer || loading}
+                  className="flex-1 bg-indigo-600 hover:bg-indigo-700"
+                >
+                  {currentQuestionIndex === questions.length - 1
+                    ? loading
+                      ? "Submitting..."
+                      : "Submit Assessment"
+                    : "Next"}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  if (step === "results" && result) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 py-8">
+        <div className="max-w-4xl mx-auto space-y-6">
+          <Card>
+            <CardHeader className="text-center">
+              <CardTitle className="text-3xl font-bold">
+                Your Compliance Health Check Results
+              </CardTitle>
+              <CardDescription className="text-lg mt-2">
+                {result.company_name}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="flex items-center justify-center gap-4 p-6 bg-gradient-to-r from-indigo-50 to-blue-50 rounded-lg">
+                <div className="text-center">
+                  <div className="text-5xl font-bold text-indigo-600">
+                    {Math.round(result.overall_percentage)}%
+                  </div>
+                  <div className="text-sm text-gray-600 mt-2">Overall Score</div>
+                </div>
+                <div className="flex items-center gap-2">
+                  {getRiskLevelIcon(result.overall_risk_level)}
+                  <Badge
+                    className={`${getRiskLevelColor(result.overall_risk_level)} text-white text-lg px-4 py-2`}
+                  >
+                    {result.overall_risk_level.toUpperCase()}
+                  </Badge>
+                </div>
+              </div>
+
+              <Separator />
+
+              <div>
+                <h3 className="text-xl font-semibold mb-4">Priority Actions</h3>
+                <div className="space-y-3">
+                  {result.priority_actions.map((action, index) => (
+                    <Alert key={index}>
+                      <AlertDescription className="flex items-start gap-2">
+                        <span className="font-semibold text-indigo-600">
+                          {index + 1}.
+                        </span>
+                        <span>{action}</span>
+                      </AlertDescription>
+                    </Alert>
+                  ))}
+                </div>
+              </div>
+
+              <Separator />
+
+              <div>
+                <h3 className="text-xl font-semibold mb-4">Category Breakdown</h3>
+                <div className="space-y-4">
+                  {result.category_scores.map((category) => (
+                    <Card key={category.category}>
+                      <CardHeader>
+                        <div className="flex items-center justify-between">
+                          <CardTitle className="text-lg">
+                            {formatCategoryName(category.category)}
+                          </CardTitle>
+                          <div className="flex items-center gap-2">
+                            <span className="text-2xl font-bold">
+                              {Math.round(category.percentage)}%
+                            </span>
+                            <Badge
+                              className={`${getRiskLevelColor(category.risk_level)} text-white`}
+                            >
+                              {category.risk_level}
+                            </Badge>
+                          </div>
+                        </div>
+                        <Progress value={category.percentage} className="h-2 mt-2" />
+                      </CardHeader>
+                      <CardContent className="space-y-3">
+                        {category.issues.length > 0 && (
+                          <div>
+                            <h4 className="font-semibold text-sm text-red-600 mb-2">
+                              Issues Identified:
+                            </h4>
+                            <ul className="list-disc list-inside space-y-1 text-sm">
+                              {category.issues.map((issue, idx) => (
+                                <li key={idx} className="text-gray-700">
+                                  {issue}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                        {category.recommendations.length > 0 && (
+                          <div>
+                            <h4 className="font-semibold text-sm text-indigo-600 mb-2">
+                              Recommendations:
+                            </h4>
+                            <ul className="list-disc list-inside space-y-1 text-sm">
+                              {category.recommendations.map((rec, idx) => (
+                                <li key={idx} className="text-gray-700">
+                                  {rec}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              </div>
+
+              <div className="bg-indigo-50 p-6 rounded-lg text-center">
+                <h3 className="text-xl font-semibold mb-2">Need Help?</h3>
+                <p className="text-gray-700 mb-4">
+                  Our compliance experts can help you address these issues and ensure
+                  your business is fully compliant.
+                </p>
+                <Button className="bg-indigo-600 hover:bg-indigo-700" size="lg">
+                  Schedule a Consultation
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+        <p className="mt-4 text-gray-600">Loading...</p>
+      </div>
+    </div>
+  );
+}
+
+export default App;
