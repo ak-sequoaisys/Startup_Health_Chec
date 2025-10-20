@@ -125,28 +125,28 @@ function App() {
   const getRiskLevelColor = (level: string) => {
     switch (level) {
       case "low":
-        return "bg-green-500";
+        return "bg-success";
       case "medium":
-        return "bg-yellow-500";
+        return "bg-warning";
       case "high":
-        return "bg-orange-500";
+        return "bg-danger";
       case "critical":
-        return "bg-red-500";
+        return "bg-destructive";
       default:
-        return "bg-gray-500";
+        return "bg-muted";
     }
   };
 
   const getRiskLevelIcon = (level: string) => {
     switch (level) {
       case "low":
-        return <CheckCircle2 className="w-6 h-6 text-green-500" />;
+        return <CheckCircle2 className="w-6 h-6 text-success" />;
       case "medium":
-        return <Info className="w-6 h-6 text-yellow-500" />;
+        return <Info className="w-6 h-6 text-warning" />;
       case "high":
-        return <AlertTriangle className="w-6 h-6 text-orange-500" />;
+        return <AlertTriangle className="w-6 h-6 text-danger" />;
       case "critical":
-        return <XCircle className="w-6 h-6 text-red-500" />;
+        return <XCircle className="w-6 h-6 text-destructive" />;
       default:
         return null;
     }
@@ -161,10 +161,10 @@ function App() {
 
   if (step === "intro") {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 flex items-center justify-center p-4">
         <Card className="max-w-2xl w-full">
           <CardHeader className="text-center">
-            <CardTitle className="text-3xl font-bold text-gray-900">
+            <CardTitle className="text-3xl font-bold text-foreground">
               Startup Compliance Health Check
             </CardTitle>
             <CardDescription className="text-lg mt-4">
@@ -174,28 +174,28 @@ function App() {
           <CardContent className="space-y-6">
             <div className="space-y-4">
               <div className="flex items-start gap-3">
-                <CheckCircle2 className="w-5 h-5 text-green-500 mt-1 flex-shrink-0" />
+                <CheckCircle2 className="w-5 h-5 text-success mt-1 flex-shrink-0" />
                 <div>
                   <h3 className="font-semibold">Comprehensive Assessment</h3>
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm text-muted-foreground">
                     15 questions covering all key compliance areas
                   </p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
-                <CheckCircle2 className="w-5 h-5 text-green-500 mt-1 flex-shrink-0" />
+                <CheckCircle2 className="w-5 h-5 text-success mt-1 flex-shrink-0" />
                 <div>
                   <h3 className="font-semibold">Instant Results</h3>
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm text-muted-foreground">
                     Get your compliance score and personalized recommendations
                   </p>
                 </div>
               </div>
               <div className="flex items-start gap-3">
-                <CheckCircle2 className="w-5 h-5 text-green-500 mt-1 flex-shrink-0" />
+                <CheckCircle2 className="w-5 h-5 text-success mt-1 flex-shrink-0" />
                 <div>
                   <h3 className="font-semibold">Actionable Insights</h3>
-                  <p className="text-sm text-gray-600">
+                  <p className="text-sm text-muted-foreground">
                     Identify priority areas and get expert guidance
                   </p>
                 </div>
@@ -203,7 +203,7 @@ function App() {
             </div>
             <Button
               onClick={handleStartAssessment}
-              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
+              className="w-full bg-primary hover:bg-primary-700 text-primary-foreground"
               size="lg"
             >
               Start Assessment
@@ -216,7 +216,7 @@ function App() {
 
   if (step === "contact") {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 flex items-center justify-center p-4">
         <Card className="max-w-2xl w-full">
           <CardHeader>
             <CardTitle className="text-2xl">Your Information</CardTitle>
@@ -279,7 +279,7 @@ function App() {
                   onChange={(e) =>
                     setContactInfo({ ...contactInfo, company_size: e.target.value })
                   }
-                  className="w-full border border-gray-300 rounded-md px-3 py-2"
+                  className="w-full border border-input rounded-md px-3 py-2 bg-background text-foreground"
                   required
                 >
                   <option value="">Select size</option>
@@ -308,7 +308,7 @@ function App() {
                 >
                   Back
                 </Button>
-                <Button type="submit" className="flex-1 bg-indigo-600 hover:bg-indigo-700">
+                <Button type="submit" className="flex-1 bg-primary hover:bg-primary-700 text-primary-foreground">
                   Continue to Assessment
                 </Button>
               </div>
@@ -321,14 +321,14 @@ function App() {
 
   if (step === "assessment" && currentQuestion) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 py-8">
+      <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 p-4 py-8">
         <div className="max-w-3xl mx-auto">
           <div className="mb-6">
             <div className="flex justify-between items-center mb-2">
-              <span className="text-sm font-medium text-gray-700">
+              <span className="text-sm font-medium text-foreground">
                 Question {currentQuestionIndex + 1} of {questions.length}
               </span>
-              <span className="text-sm font-medium text-gray-700">
+              <span className="text-sm font-medium text-foreground">
                 {Math.round(progress)}% Complete
               </span>
             </div>
@@ -360,7 +360,7 @@ function App() {
                 {currentQuestion.options?.map((option) => (
                   <div
                     key={option.id}
-                    className="flex items-center space-x-3 border rounded-lg p-4 hover:bg-gray-50 cursor-pointer"
+                    className="flex items-center space-x-3 border rounded-lg p-4 hover:bg-accent cursor-pointer"
                   >
                     <RadioGroupItem value={option.id} id={option.id} />
                     <Label
@@ -397,7 +397,7 @@ function App() {
                 <Button
                   onClick={handleNext}
                   disabled={!currentAnswer || loading}
-                  className="flex-1 bg-indigo-600 hover:bg-indigo-700"
+                  className="flex-1 bg-primary hover:bg-primary-700 text-primary-foreground"
                 >
                   {currentQuestionIndex === questions.length - 1
                     ? loading
@@ -415,7 +415,7 @@ function App() {
 
   if (step === "results" && result) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4 py-8">
+      <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 p-4 py-8">
         <div className="max-w-4xl mx-auto space-y-6">
           <Card>
             <CardHeader className="text-center">
@@ -427,12 +427,12 @@ function App() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="flex items-center justify-center gap-4 p-6 bg-gradient-to-r from-indigo-50 to-blue-50 rounded-lg">
+              <div className="flex items-center justify-center gap-4 p-6 bg-gradient-to-r from-primary-50 to-accent rounded-lg">
                 <div className="text-center">
-                  <div className="text-5xl font-bold text-indigo-600">
+                  <div className="text-5xl font-bold text-primary">
                     {Math.round(result.overall_percentage)}%
                   </div>
-                  <div className="text-sm text-gray-600 mt-2">Overall Score</div>
+                  <div className="text-sm text-muted-foreground mt-2">Overall Score</div>
                 </div>
                 <div className="flex items-center gap-2">
                   {getRiskLevelIcon(result.overall_risk_level)}
@@ -452,7 +452,7 @@ function App() {
                   {result.priority_actions.map((action, index) => (
                     <Alert key={index}>
                       <AlertDescription className="flex items-start gap-2">
-                        <span className="font-semibold text-indigo-600">
+                        <span className="font-semibold text-primary">
                           {index + 1}.
                         </span>
                         <span>{action}</span>
@@ -490,12 +490,12 @@ function App() {
                       <CardContent className="space-y-3">
                         {category.issues.length > 0 && (
                           <div>
-                            <h4 className="font-semibold text-sm text-red-600 mb-2">
+                            <h4 className="font-semibold text-sm text-destructive mb-2">
                               Issues Identified:
                             </h4>
                             <ul className="list-disc list-inside space-y-1 text-sm">
                               {category.issues.map((issue, idx) => (
-                                <li key={idx} className="text-gray-700">
+                                <li key={idx} className="text-foreground">
                                   {issue}
                                 </li>
                               ))}
@@ -504,12 +504,12 @@ function App() {
                         )}
                         {category.recommendations.length > 0 && (
                           <div>
-                            <h4 className="font-semibold text-sm text-indigo-600 mb-2">
+                            <h4 className="font-semibold text-sm text-primary mb-2">
                               Recommendations:
                             </h4>
                             <ul className="list-disc list-inside space-y-1 text-sm">
                               {category.recommendations.map((rec, idx) => (
-                                <li key={idx} className="text-gray-700">
+                                <li key={idx} className="text-foreground">
                                   {rec}
                                 </li>
                               ))}
@@ -522,13 +522,13 @@ function App() {
                 </div>
               </div>
 
-              <div className="bg-indigo-50 p-6 rounded-lg text-center">
+              <div className="bg-accent p-6 rounded-lg text-center">
                 <h3 className="text-xl font-semibold mb-2">Need Help?</h3>
-                <p className="text-gray-700 mb-4">
+                <p className="text-foreground mb-4">
                   Our compliance experts can help you address these issues and ensure
                   your business is fully compliant.
                 </p>
-                <Button className="bg-indigo-600 hover:bg-indigo-700" size="lg">
+                <Button className="bg-primary hover:bg-primary-700 text-primary-foreground" size="lg">
                   Schedule a Consultation
                 </Button>
               </div>
@@ -540,10 +540,10 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 flex items-center justify-center">
       <div className="text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
-        <p className="mt-4 text-gray-600">Loading...</p>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+        <p className="mt-4 text-muted-foreground">Loading...</p>
       </div>
     </div>
   );
