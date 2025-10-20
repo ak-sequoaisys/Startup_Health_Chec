@@ -12,20 +12,28 @@ class QuestionType(str, Enum):
 
 
 class ComplianceCategory(str, Enum):
-    EMPLOYMENT_CONTRACTS = "employment_contracts"
-    WORKPLACE_SAFETY = "workplace_safety"
-    PAYROLL_TAX = "payroll_tax"
-    EMPLOYEE_BENEFITS = "employee_benefits"
+    REGISTRATION = "registration"
+    EMPLOYEE_DOCS = "employee_docs"
+    PAYROLL_STATUTORY = "payroll_statutory"
     WORKPLACE_POLICIES = "workplace_policies"
-    RECORD_KEEPING = "record_keeping"
-    TERMINATION_PROCEDURES = "termination_procedures"
+    LABOUR_FILINGS = "labour_filings"
+    GOVERNANCE = "governance"
+
+
+CATEGORY_WEIGHTS = {
+    ComplianceCategory.REGISTRATION: 20,
+    ComplianceCategory.EMPLOYEE_DOCS: 15,
+    ComplianceCategory.PAYROLL_STATUTORY: 25,
+    ComplianceCategory.WORKPLACE_POLICIES: 15,
+    ComplianceCategory.LABOUR_FILINGS: 20,
+    ComplianceCategory.GOVERNANCE: 5,
+}
 
 
 class RiskLevel(str, Enum):
-    LOW = "low"
-    MEDIUM = "medium"
-    HIGH = "high"
-    CRITICAL = "critical"
+    HEALTHY = "healthy"
+    MODERATE = "moderate"
+    HIGH_RISK = "high_risk"
 
 
 class QuestionOption(BaseModel):
