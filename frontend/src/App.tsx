@@ -13,6 +13,7 @@ import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CheckCircle2, AlertTriangle, XCircle, Info, Download, Calendar, ExternalLink, Share2 } from "lucide-react";
+import { initializeGTM, trackStartAssessment, trackAnswerQuestion, trackViewResults, trackReportDownload } from "./analytics";
 
 type Step = "intro" | "contact" | "assessment" | "results";
 
@@ -45,6 +46,7 @@ function App() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    initializeGTM();
     loadQuestions();
   }, []);
 
@@ -74,6 +76,11 @@ function App() {
       setError(null);
       try {
         await startAssessment(contactInfo);
+        trackStartAssessment({
+          company_name: contactInfo.company_name,
+          industry: contactInfo.industry,
+          employee_range: contactInfo.employee_range,
+        });
         setStep("assessment");
       } catch {
         setError("Failed to start assessment. Please try again.");
@@ -97,6 +104,17 @@ function App() {
       setAnswers(newAnswers);
     } else {
       setAnswers([...answers, newAnswer]);
+    }
+
+    const question = questions.find((q) => q.id === questionId);
+    if (question) {
+      trackAnswerQuestion({
+        question_id: questionId,
+        question_number: currentQuestionIndex + 1,
+        category: question.category,
+        answer_value: optionId,
+        score: score,
+      });
     }
   };
 
@@ -130,6 +148,14 @@ function App() {
       setResult(assessmentResult);
       setStep("results");
       window.history.pushState({}, "", `?result=${assessmentResult.id}`);
+      
+      trackViewResults({
+        assessment_id: assessmentResult.id,
+        overall_score: assessmentResult.overall_score,
+        overall_percentage: assessmentResult.overall_percentage,
+        risk_level: assessmentResult.overall_risk_level,
+        company_name: assessmentResult.company_name,
+      });
     } catch {
       setError("Failed to submit assessment. Please try again.");
     } finally {
@@ -159,6 +185,13 @@ function App() {
       link.click();
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
+      
+      trackReportDownload({
+        assessment_id: result.id,
+        company_name: result.company_name,
+        overall_percentage: result.overall_percentage,
+        risk_level: result.overall_risk_level,
+      });
     } catch (err) {
       setError("Failed to generate PDF report. Please try again.");
     } finally {
