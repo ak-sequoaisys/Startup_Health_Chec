@@ -68,10 +68,17 @@ if DATABASE_URL and create_engine is not None:
         phone = Column(String, nullable=True)
         company_size = Column(String, nullable=False)
         industry = Column(String, nullable=True)
+        employee_range = Column(String, nullable=True)
+        operating_states = Column(JSON, nullable=True)
+        business_age = Column(String, nullable=True)
+        consent = Column(String, nullable=False, default="false")
+        status = Column(String, nullable=False, default="started")
+        ip_hash = Column(String, nullable=True)
+        user_agent = Column(String, nullable=True)
         submission_date = Column(DateTime, nullable=False)
-        overall_score = Column(Integer, nullable=False)
-        overall_risk_level = Column(String, nullable=False)
-        high_risk_categories = Column(JSON, nullable=False)
+        overall_score = Column(Integer, nullable=True)
+        overall_risk_level = Column(String, nullable=True)
+        high_risk_categories = Column(JSON, nullable=True)
 
     Base.metadata.create_all(bind=engine)
 
@@ -110,9 +117,16 @@ if DATABASE_URL and create_engine is not None:
                     phone=lead.phone,
                     company_size=lead.company_size,
                     industry=lead.industry,
+                    employee_range=lead.employee_range,
+                    operating_states=lead.operating_states,
+                    business_age=lead.business_age,
+                    consent=str(lead.consent).lower(),
+                    status=str(lead.status),
+                    ip_hash=lead.ip_hash,
+                    user_agent=lead.user_agent,
                     submission_date=lead.submission_date if isinstance(lead.submission_date, datetime) else datetime.fromisoformat(str(lead.submission_date)),
                     overall_score=lead.overall_score,
-                    overall_risk_level=str(lead.overall_risk_level),
+                    overall_risk_level=str(lead.overall_risk_level) if lead.overall_risk_level else None,
                     high_risk_categories=lead.high_risk_categories,
                 )
                 session.merge(obj)
@@ -132,6 +146,13 @@ if DATABASE_URL and create_engine is not None:
                     "phone": obj.phone,
                     "company_size": obj.company_size,
                     "industry": obj.industry,
+                    "employee_range": obj.employee_range,
+                    "operating_states": obj.operating_states,
+                    "business_age": obj.business_age,
+                    "consent": obj.consent.lower() == "true" if obj.consent else False,
+                    "status": obj.status,
+                    "ip_hash": obj.ip_hash,
+                    "user_agent": obj.user_agent,
                     "submission_date": obj.submission_date.isoformat(),
                     "overall_score": obj.overall_score,
                     "overall_risk_level": obj.overall_risk_level,
@@ -152,6 +173,13 @@ if DATABASE_URL and create_engine is not None:
                         "phone": obj.phone,
                         "company_size": obj.company_size,
                         "industry": obj.industry,
+                        "employee_range": obj.employee_range,
+                        "operating_states": obj.operating_states,
+                        "business_age": obj.business_age,
+                        "consent": obj.consent.lower() == "true" if obj.consent else False,
+                        "status": obj.status,
+                        "ip_hash": obj.ip_hash,
+                        "user_agent": obj.user_agent,
                         "submission_date": obj.submission_date.isoformat(),
                         "overall_score": obj.overall_score,
                         "overall_risk_level": obj.overall_risk_level,

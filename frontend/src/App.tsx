@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { Question, Answer, AssessmentResult } from "./types";
-import { fetchQuestions, submitAssessment } from "./api";
+import { Question, Answer, AssessmentResult, Lead } from "./types";
+import { fetchQuestions, submitAssessment, startAssessment } from "./api";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,17 +10,20 @@ import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CheckCircle2, AlertTriangle, XCircle, Info } from "lucide-react";
 
 type Step = "intro" | "contact" | "assessment" | "results";
 
 interface ContactInfo {
-  company_name: string;
-  contact_name: string;
   email: string;
-  phone: string;
-  company_size: string;
+  company_name: string;
   industry: string;
+  employee_range: string;
+  operating_states: string[];
+  business_age: string;
+  consent: boolean;
 }
 
 function App() {
@@ -29,13 +32,15 @@ function App() {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<Answer[]>([]);
   const [contactInfo, setContactInfo] = useState<ContactInfo>({
-    company_name: "",
-    contact_name: "",
     email: "",
-    phone: "",
-    company_size: "",
+    company_name: "",
     industry: "",
+    employee_range: "",
+    operating_states: [],
+    business_age: "",
+    consent: false,
   });
+  const [leadId, setLeadId] = useState<string | null>(null);
   const [result, setResult] = useState<AssessmentResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -57,15 +62,26 @@ function App() {
     setStep("contact");
   };
 
-  const handleContactSubmit = (e: React.FormEvent) => {
+  const handleContactSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (
-      contactInfo.company_name &&
-      contactInfo.contact_name &&
       contactInfo.email &&
-      contactInfo.company_size
+      contactInfo.company_name &&
+      contactInfo.employee_range &&
+      contactInfo.operating_states.length > 0 &&
+      contactInfo.consent
     ) {
-      setStep("assessment");
+      setLoading(true);
+      setError(null);
+      try {
+        const lead = await startAssessment(contactInfo);
+        setLeadId(lead.id);
+        setStep("assessment");
+      } catch (err) {
+        setError("Failed to start assessment. Please try again.");
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -215,39 +231,28 @@ function App() {
   }
 
   if (step === "contact") {
+    const australianStates = [
+      { value: "NSW", label: "New South Wales" },
+      { value: "VIC", label: "Victoria" },
+      { value: "QLD", label: "Queensland" },
+      { value: "WA", label: "Western Australia" },
+      { value: "SA", label: "South Australia" },
+      { value: "TAS", label: "Tasmania" },
+      { value: "ACT", label: "Australian Capital Territory" },
+      { value: "NT", label: "Northern Territory" },
+    ];
+
     return (
       <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 flex items-center justify-center p-4">
         <Card className="max-w-2xl w-full">
           <CardHeader>
-            <CardTitle className="text-2xl">Your Information</CardTitle>
+            <CardTitle className="text-2xl">Start Your Compliance Assessment</CardTitle>
             <CardDescription>
-              Please provide your details to receive your assessment results
+              Tell us about your business to begin
             </CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleContactSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="company_name">Company Name *</Label>
-                <Input
-                  id="company_name"
-                  value={contactInfo.company_name}
-                  onChange={(e) =>
-                    setContactInfo({ ...contactInfo, company_name: e.target.value })
-                  }
-                  required
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="contact_name">Your Name *</Label>
-                <Input
-                  id="contact_name"
-                  value={contactInfo.contact_name}
-                  onChange={(e) =>
-                    setContactInfo({ ...contactInfo, contact_name: e.target.value })
-                  }
-                  required
-                />
-              </div>
               <div className="space-y-2">
                 <Label htmlFor="email">Email *</Label>
                 <Input
@@ -261,33 +266,15 @@ function App() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="phone">Phone</Label>
+                <Label htmlFor="company_name">Company Name *</Label>
                 <Input
-                  id="phone"
-                  type="tel"
-                  value={contactInfo.phone}
+                  id="company_name"
+                  value={contactInfo.company_name}
                   onChange={(e) =>
-                    setContactInfo({ ...contactInfo, phone: e.target.value })
+                    setContactInfo({ ...contactInfo, company_name: e.target.value })
                   }
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="company_size">Company Size *</Label>
-                <select
-                  id="company_size"
-                  value={contactInfo.company_size}
-                  onChange={(e) =>
-                    setContactInfo({ ...contactInfo, company_size: e.target.value })
-                  }
-                  className="w-full border border-input rounded-md px-3 py-2 bg-background text-foreground"
                   required
-                >
-                  <option value="">Select size</option>
-                  <option value="1-10">1-10 employees</option>
-                  <option value="11-50">11-50 employees</option>
-                  <option value="51-200">51-200 employees</option>
-                  <option value="201+">201+ employees</option>
-                </select>
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="industry">Industry</Label>
@@ -297,19 +284,114 @@ function App() {
                   onChange={(e) =>
                     setContactInfo({ ...contactInfo, industry: e.target.value })
                   }
+                  placeholder="e.g., Technology, Healthcare, Retail"
                 />
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="employee_range">Employee Range *</Label>
+                <Select
+                  value={contactInfo.employee_range}
+                  onValueChange={(value) =>
+                    setContactInfo({ ...contactInfo, employee_range: value })
+                  }
+                  required
+                >
+                  <SelectTrigger id="employee_range">
+                    <SelectValue placeholder="Select employee range" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="1-10">1-10 employees</SelectItem>
+                    <SelectItem value="11-50">11-50 employees</SelectItem>
+                    <SelectItem value="51-200">51-200 employees</SelectItem>
+                    <SelectItem value="201+">201+ employees</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Operating States *</Label>
+                <div className="grid grid-cols-2 gap-3">
+                  {australianStates.map((state) => (
+                    <div key={state.value} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={state.value}
+                        checked={contactInfo.operating_states.includes(state.value)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setContactInfo({
+                              ...contactInfo,
+                              operating_states: [...contactInfo.operating_states, state.value],
+                            });
+                          } else {
+                            setContactInfo({
+                              ...contactInfo,
+                              operating_states: contactInfo.operating_states.filter(
+                                (s) => s !== state.value
+                              ),
+                            });
+                          }
+                        }}
+                      />
+                      <Label htmlFor={state.value} className="font-normal cursor-pointer">
+                        {state.label}
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="business_age">Business Age</Label>
+                <Select
+                  value={contactInfo.business_age}
+                  onValueChange={(value) =>
+                    setContactInfo({ ...contactInfo, business_age: value })
+                  }
+                >
+                  <SelectTrigger id="business_age">
+                    <SelectValue placeholder="Select business age" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="0-1">Less than 1 year</SelectItem>
+                    <SelectItem value="1-3">1-3 years</SelectItem>
+                    <SelectItem value="3-5">3-5 years</SelectItem>
+                    <SelectItem value="5+">5+ years</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="flex items-start space-x-2 pt-2">
+                <Checkbox
+                  id="consent"
+                  checked={contactInfo.consent}
+                  onCheckedChange={(checked) =>
+                    setContactInfo({ ...contactInfo, consent: checked === true })
+                  }
+                  required
+                />
+                <Label htmlFor="consent" className="font-normal text-sm cursor-pointer">
+                  I consent to receiving information about compliance services and agree to the
+                  collection of my information for assessment purposes. *
+                </Label>
+              </div>
+              {error && (
+                <Alert variant="destructive">
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
               <div className="flex gap-3 pt-4">
                 <Button
                   type="button"
                   variant="outline"
                   onClick={() => setStep("intro")}
                   className="flex-1"
+                  disabled={loading}
                 >
                   Back
                 </Button>
-                <Button type="submit" className="flex-1 bg-primary hover:bg-primary-700 text-primary-foreground">
-                  Continue to Assessment
+                <Button 
+                  type="submit" 
+                  className="flex-1 bg-primary hover:bg-primary-700 text-primary-foreground"
+                  disabled={loading}
+                >
+                  {loading ? "Starting..." : "Start Assessment"}
                 </Button>
               </div>
             </form>

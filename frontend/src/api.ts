@@ -1,6 +1,20 @@
-import { Question, AssessmentSubmission, AssessmentResult } from "./types";
+import { Question, AssessmentSubmission, AssessmentResult, StartAssessmentRequest, Lead } from "./types";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+
+export async function startAssessment(data: StartAssessmentRequest): Promise<Lead> {
+  const response = await fetch(`${API_URL}/api/v1/assessments/start`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(data),
+  });
+  if (!response.ok) {
+    throw new Error("Failed to start assessment");
+  }
+  return response.json();
+}
 
 export async function fetchQuestions(): Promise<Question[]> {
   const response = await fetch(`${API_URL}/api/questions`);
