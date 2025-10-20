@@ -39,6 +39,7 @@ function App() {
   const [result, setResult] = useState<AssessmentResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [emailError, setEmailError] = useState<string>("");
 
   useEffect(() => {
     loadQuestions();
@@ -53,17 +54,64 @@ function App() {
     }
   };
 
+  const freeEmailDomains = [
+    'gmail.com', 'yahoo.com', 'yahoo.co.uk', 'yahoo.com.au', 'yahoo.ca', 'yahoo.in',
+    'hotmail.com', 'hotmail.co.uk', 'hotmail.fr', 'hotmail.it', 'hotmail.es',
+    'outlook.com', 'outlook.co.uk', 'live.com', 'live.co.uk', 'live.fr',
+    'msn.com', 'aol.com', 'aol.co.uk', 'icloud.com', 'me.com', 'mac.com',
+    'protonmail.com', 'protonmail.ch', 'proton.me', 'mail.com',
+    'gmx.com', 'gmx.net', 'gmx.de', 'yandex.com', 'yandex.ru',
+    'zoho.com', 'zohomail.com', 'rediffmail.com', 'mail.ru',
+    'inbox.ru', 'list.ru', 'bk.ru', 'rambler.ru', 'ya.ru',
+    'fastmail.com', 'fastmail.fm', 'hushmail.com',
+    'tutanota.com', 'tutanota.de', 'tutamail.com',
+    'mailinator.com', 'guerrillamail.com', '10minutemail.com',
+    'tempmail.com', 'throwaway.email', 'maildrop.cc'
+  ];
+
+  const validateBusinessEmail = (email: string): string => {
+    if (!email) {
+      return "";
+    }
+
+    const emailPattern = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    if (!emailPattern.test(email)) {
+      return "Invalid email format";
+    }
+
+    const domain = email.split('@')[1]?.toLowerCase();
+    if (domain && freeEmailDomains.includes(domain)) {
+      return "We only accept business emails. Please use your work email.";
+    }
+
+    return "";
+  };
+
+  const handleEmailChange = (email: string) => {
+    setContactInfo({ ...contactInfo, email });
+    const error = validateBusinessEmail(email);
+    setEmailError(error);
+  };
+
   const handleStartAssessment = () => {
     setStep("contact");
   };
 
   const handleContactSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    const emailValidationError = validateBusinessEmail(contactInfo.email);
+    if (emailValidationError) {
+      setEmailError(emailValidationError);
+      return;
+    }
+    
     if (
       contactInfo.company_name &&
       contactInfo.contact_name &&
       contactInfo.email &&
-      contactInfo.company_size
+      contactInfo.company_size &&
+      !emailError
     ) {
       setStep("assessment");
     }
@@ -254,11 +302,13 @@ function App() {
                   id="email"
                   type="email"
                   value={contactInfo.email}
-                  onChange={(e) =>
-                    setContactInfo({ ...contactInfo, email: e.target.value })
-                  }
+                  onChange={(e) => handleEmailChange(e.target.value)}
                   required
+                  className={emailError ? "border-destructive" : ""}
                 />
+                {emailError && (
+                  <p className="text-sm text-destructive">{emailError}</p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="phone">Phone</Label>
@@ -308,7 +358,11 @@ function App() {
                 >
                   Back
                 </Button>
-                <Button type="submit" className="flex-1 bg-primary hover:bg-primary-700 text-primary-foreground">
+                <Button 
+                  type="submit" 
+                  className="flex-1 bg-primary hover:bg-primary-700 text-primary-foreground"
+                  disabled={!!emailError || !contactInfo.email}
+                >
                   Continue to Assessment
                 </Button>
               </div>

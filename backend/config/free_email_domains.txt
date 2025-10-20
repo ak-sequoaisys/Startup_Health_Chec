@@ -1,0 +1,72 @@
+# Free Email Provider Domains - Blocked for Business Email Validation
+# This list contains common free email providers that should not be accepted
+# for business email validation
+
+# Major providers
+gmail.com
+yahoo.com
+yahoo.co.uk
+yahoo.com.au
+yahoo.ca
+yahoo.in
+hotmail.com
+hotmail.co.uk
+hotmail.fr
+hotmail.it
+hotmail.es
+outlook.com
+outlook.co.uk
+live.com
+live.co.uk
+live.fr
+msn.com
+aol.com
+aol.co.uk
+
+# Other popular free providers
+icloud.com
+me.com
+mac.com
+protonmail.com
+protonmail.ch
+proton.me
+mail.com
+gmx.com
+gmx.net
+gmx.de
+yandex.com
+yandex.ru
+zoho.com
+zohomail.com
+
+# Regional providers
+rediffmail.com
+mail.ru
+inbox.ru
+list.ru
+bk.ru
+rambler.ru
+ya.ru
+fastmail.com
+fastmail.fm
+hushmail.com
+tutanota.com
+tutanota.de
+tutamail.com
+
+# Temporary/disposable email providers
+mailinator.com
+guerrillamail.com
+10minutemail.com
+tempmail.com
+throwaway.email
+maildrop.cc
+sharklasers.com
+guerrillamail.info
+grr.la
+guerrillamail.biz
+guerrillamail.com
+guerrillamail.de
+guerrillamail.net
+guerrillamail.org
+spam4.me
