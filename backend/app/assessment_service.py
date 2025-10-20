@@ -3,20 +3,18 @@ from datetime import datetime
 import uuid
 from app.models import (
     AssessmentSubmission, AssessmentResult, CategoryScore, 
-    RiskLevel, ComplianceCategory, Lead, Answer
+    RiskLevel, ComplianceCategory, Lead, Answer, CATEGORY_WEIGHTS
 )
 from app.questions_data import get_all_questions, get_question_by_id
 
 
 def calculate_risk_level(percentage: float) -> RiskLevel:
-    if percentage >= 80:
-        return RiskLevel.LOW
-    elif percentage >= 60:
-        return RiskLevel.MEDIUM
-    elif percentage >= 40:
-        return RiskLevel.HIGH
+    if percentage >= 71:
+        return RiskLevel.HEALTHY
+    elif percentage >= 41:
+        return RiskLevel.MODERATE
     else:
-        return RiskLevel.CRITICAL
+        return RiskLevel.HIGH_RISK
 
 
 def get_category_recommendations(category: ComplianceCategory, score: int, max_score: int) -> List[str]:
@@ -63,12 +61,10 @@ def get_category_recommendations(category: ComplianceCategory, score: int, max_s
     
     category_recs = recommendations.get(category, [])
     
-    if percentage >= 80:
+    if percentage >= 71:
         return [category_recs[0]] if category_recs else []
-    elif percentage >= 60:
+    elif percentage >= 41:
         return category_recs[:2] if len(category_recs) >= 2 else category_recs
-    elif percentage >= 40:
-        return category_recs[:3] if len(category_recs) >= 3 else category_recs
     else:
         return category_recs
 
@@ -82,7 +78,7 @@ def get_category_issues(category: ComplianceCategory, answers: List[Answer]) -> 
         if question and question.category == category:
             if answer.score < 10:
                 option = next((opt for opt in question.options if opt.id == answer.answer_value), None)
-                if option and option.risk_level in [RiskLevel.HIGH, RiskLevel.CRITICAL]:
+                if option and option.risk_level in [RiskLevel.HIGH_RISK, RiskLevel.MODERATE]:
                     issues.append(f"{question.question_text}: {option.text}")
     
     return issues
@@ -111,43 +107,46 @@ def calculate_assessment_result(submission: AssessmentSubmission) -> AssessmentR
             category_data[category]["answers"].append(answer)
     
     category_scores = []
-    overall_score = 0
-    overall_max_score = 0
+    overall_weighted_score = 0
+    overall_max_weighted_score = 0
     
     for category, data in category_data.items():
         if data["max_score"] > 0:
-            percentage = (data["score"] / data["max_score"]) * 100
-            risk_level = calculate_risk_level(percentage)
+            category_percentage = (data["score"] / data["max_score"]) * 100
+            risk_level = calculate_risk_level(category_percentage)
             issues = get_category_issues(category, data["answers"])
             recommendations = get_category_recommendations(category, data["score"], data["max_score"])
+            
+            category_weight = CATEGORY_WEIGHTS.get(category, 0)
+            weighted_score = (category_percentage / 100) * category_weight
             
             category_scores.append(CategoryScore(
                 category=category,
                 score=data["score"],
                 max_score=data["max_score"],
-                percentage=round(percentage, 2),
+                percentage=round(category_percentage, 2),
                 risk_level=risk_level,
                 issues=issues,
                 recommendations=recommendations
             ))
             
-            overall_score += data["score"]
-            overall_max_score += data["max_score"]
+            overall_weighted_score += weighted_score
+            overall_max_weighted_score += category_weight
     
-    overall_percentage = (overall_score / overall_max_score * 100) if overall_max_score > 0 else 0
+    overall_percentage = (overall_weighted_score / overall_max_weighted_score * 100) if overall_max_weighted_score > 0 else 0
     overall_risk_level = calculate_risk_level(overall_percentage)
     
     priority_actions = []
-    critical_categories = [cs for cs in category_scores if cs.risk_level == RiskLevel.CRITICAL]
-    high_categories = [cs for cs in category_scores if cs.risk_level == RiskLevel.HIGH]
+    high_risk_categories = [cs for cs in category_scores if cs.risk_level == RiskLevel.HIGH_RISK]
+    moderate_categories = [cs for cs in category_scores if cs.risk_level == RiskLevel.MODERATE]
     
-    for cat_score in critical_categories[:3]:
+    for cat_score in high_risk_categories[:3]:
         if cat_score.recommendations:
-            priority_actions.append(f"CRITICAL - {cat_score.category.value}: {cat_score.recommendations[0]}")
+            priority_actions.append(f"HIGH RISK - {cat_score.category.value}: {cat_score.recommendations[0]}")
     
-    for cat_score in high_categories[:2]:
+    for cat_score in moderate_categories[:2]:
         if cat_score.recommendations and len(priority_actions) < 5:
-            priority_actions.append(f"HIGH - {cat_score.category.value}: {cat_score.recommendations[0]}")
+            priority_actions.append(f"MODERATE - {cat_score.category.value}: {cat_score.recommendations[0]}")
     
     if not priority_actions:
         priority_actions.append("Continue maintaining your current compliance standards")
@@ -159,8 +158,8 @@ def calculate_assessment_result(submission: AssessmentSubmission) -> AssessmentR
         company_name=submission.company_name,
         contact_name=submission.contact_name,
         email=submission.email,
-        overall_score=overall_score,
-        max_score=overall_max_score,
+        overall_score=int(overall_weighted_score),
+        max_score=int(overall_max_weighted_score),
         overall_percentage=round(overall_percentage, 2),
         overall_risk_level=overall_risk_level,
         category_scores=category_scores,
@@ -173,7 +172,7 @@ def calculate_assessment_result(submission: AssessmentSubmission) -> AssessmentR
 def create_lead_from_submission(submission: AssessmentSubmission, result: AssessmentResult) -> Lead:
     high_risk_categories = [
         cs.category.value for cs in result.category_scores 
-        if cs.risk_level in [RiskLevel.HIGH, RiskLevel.CRITICAL]
+        if cs.risk_level in [RiskLevel.HIGH_RISK, RiskLevel.MODERATE]
     ]
     
     lead = Lead(

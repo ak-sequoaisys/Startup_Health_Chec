@@ -134,6 +134,38 @@ async def submit_assessment(submission: AssessmentSubmission):
         raise HTTPException(status_code=500, detail=f"Error processing assessment: {str(e)}")
 
 
+@app.post("/api/v1/assessments/compute")
+async def compute_assessment(submission: AssessmentSubmission):
+    try:
+        result = calculate_assessment_result(submission)
+        
+        db.save_assessment(result)
+        
+        lead = create_lead_from_submission(submission, result)
+        db.save_lead(lead)
+        
+        gaps = []
+        for cat_score in result.category_scores:
+            if cat_score.issues:
+                for issue in cat_score.issues:
+                    gaps.append({
+                        "category": cat_score.category.value,
+                        "issue": issue,
+                        "risk_level": cat_score.risk_level.value
+                    })
+        
+        actions = result.priority_actions
+        
+        return {
+            "score": result.overall_percentage,
+            "rating": result.overall_risk_level.value,
+            "gaps": gaps,
+            "actions": actions
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error computing assessment: {str(e)}")
+
+
 @app.get("/api/v1/assessments/{assessment_id}", response_model=AssessmentResult)
 async def get_assessment(assessment_id: str):
     assessment = db.get_assessment(assessment_id)
