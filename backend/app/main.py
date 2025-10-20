@@ -1,7 +1,7 @@
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, Depends
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
-from typing import List
+from fastapi.responses import FileResponse, Response
+from typing import List, Optional
 from datetime import datetime
 import hashlib
 import uuid
@@ -11,6 +11,9 @@ from app.assessment_service import calculate_assessment_result, create_lead_from
 from app.database import db
 from app.pdf_service import generate_pdf_report
 from app.email_service import email_service
+from app.admin_models import TrialRecord, TrialFilters
+from app.admin_service import get_trials, export_trials_csv
+from app.auth import get_current_user
 
 app = FastAPI(title="Startup Compliance Health Check API")
 
@@ -231,3 +234,67 @@ async def get_audit_log(audit_log_id: str):
     if not audit_log:
         raise HTTPException(status_code=404, detail="Audit log not found")
     return audit_log
+
+
+@app.get("/api/v1/admin/trials", response_model=List[TrialRecord])
+async def get_admin_trials(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    states: Optional[str] = None,
+    score_min: Optional[float] = None,
+    score_max: Optional[float] = None,
+    status: Optional[str] = None,
+    current_user: dict = Depends(get_current_user)
+):
+    try:
+        filters = None
+        if any([start_date, end_date, states, score_min, score_max, status]):
+            filters = TrialFilters(
+                start_date=datetime.fromisoformat(start_date) if start_date else None,
+                end_date=datetime.fromisoformat(end_date) if end_date else None,
+                states=states.split(",") if states else None,
+                score_min=score_min,
+                score_max=score_max,
+                status=LeadStatus(status) if status else None
+            )
+        
+        trials = get_trials(filters)
+        return trials
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error fetching trials: {str(e)}")
+
+
+@app.get("/api/v1/admin/trials/export")
+async def export_admin_trials(
+    start_date: Optional[str] = None,
+    end_date: Optional[str] = None,
+    states: Optional[str] = None,
+    score_min: Optional[float] = None,
+    score_max: Optional[float] = None,
+    status: Optional[str] = None,
+    current_user: dict = Depends(get_current_user)
+):
+    try:
+        filters = None
+        if any([start_date, end_date, states, score_min, score_max, status]):
+            filters = TrialFilters(
+                start_date=datetime.fromisoformat(start_date) if start_date else None,
+                end_date=datetime.fromisoformat(end_date) if end_date else None,
+                states=states.split(",") if states else None,
+                score_min=score_min,
+                score_max=score_max,
+                status=LeadStatus(status) if status else None
+            )
+        
+        trials = get_trials(filters)
+        csv_content = export_trials_csv(trials)
+        
+        return Response(
+            content=csv_content,
+            media_type="text/csv",
+            headers={
+                "Content-Disposition": f"attachment; filename=trials_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+            }
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error exporting trials: {str(e)}")
