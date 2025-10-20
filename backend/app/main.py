@@ -5,11 +5,12 @@ from typing import List
 from datetime import datetime
 import hashlib
 import uuid
-from app.models import Question, AssessmentSubmission, AssessmentResult, Lead, StartAssessmentRequest, LeadStatus, AnswerRequest, InProgressAssessment, Answer
+from app.models import Question, AssessmentSubmission, AssessmentResult, Lead, StartAssessmentRequest, LeadStatus, AnswerRequest, InProgressAssessment, Answer, AuditLog
 from app.questions_data import get_all_questions, get_question_by_id
 from app.assessment_service import calculate_assessment_result, create_lead_from_submission
 from app.database import db
 from app.pdf_service import generate_pdf_report
+from app.email_service import email_service
 
 app = FastAPI(title="Startup Compliance Health Check API")
 
@@ -146,6 +147,11 @@ async def compute_assessment(submission: AssessmentSubmission):
         lead = create_lead_from_submission(submission, result)
         db.save_lead(lead)
         
+        try:
+            email_service.send_notification(result)
+        except Exception as email_error:
+            print(f"Failed to send email notification: {email_error}")
+        
         gaps = []
         for cat_score in result.category_scores:
             if cat_score.issues:
@@ -212,3 +218,16 @@ async def generate_report(assessment_id: str):
         raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error generating report: {str(e)}")
+
+
+@app.get("/api/v1/audit-logs", response_model=List[AuditLog])
+async def get_audit_logs():
+    return db.get_all_audit_logs()
+
+
+@app.get("/api/v1/audit-logs/{audit_log_id}", response_model=AuditLog)
+async def get_audit_log(audit_log_id: str):
+    audit_log = db.get_audit_log(audit_log_id)
+    if not audit_log:
+        raise HTTPException(status_code=404, detail="Audit log not found")
+    return audit_log

@@ -157,3 +157,21 @@ class Lead(BaseModel):
     overall_score: Optional[int] = None
     overall_risk_level: Optional[RiskLevel] = None
     high_risk_categories: Optional[List[str]] = None
+
+
+class EmailStatus(str, Enum):
+    SUCCESS = "success"
+    FAILED = "failed"
+    PENDING = "pending"
+
+
+class AuditLog(BaseModel):
+    id: str
+    assessment_id: str
+    company_name: str
+    email: EmailStr
+    score: float
+    email_status: EmailStatus
+    attempts: int
+    error_message: Optional[str] = None
+    timestamp: datetime
