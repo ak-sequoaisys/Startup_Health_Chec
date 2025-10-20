@@ -1,7 +1,7 @@
 import os
 from typing import Dict, List, Optional
 from datetime import datetime
-from app.models import AssessmentResult, Lead, InProgressAssessment
+from app.models import AssessmentResult, Lead, InProgressAssessment, AuditLog
 
 try:
     from sqlalchemy import create_engine, Column, String, DateTime, Integer
@@ -23,6 +23,7 @@ class InMemoryDatabase:
         self.assessments: Dict[str, AssessmentResult] = {}
         self.leads: Dict[str, Lead] = {}
         self.in_progress_assessments: Dict[str, InProgressAssessment] = {}
+        self.audit_logs: Dict[str, AuditLog] = {}
     
     def save_assessment(self, assessment: AssessmentResult) -> AssessmentResult:
         self.assessments[assessment.id] = assessment
@@ -50,6 +51,16 @@ class InMemoryDatabase:
     
     def get_in_progress_assessment(self, assessment_id: str) -> Optional[InProgressAssessment]:
         return self.in_progress_assessments.get(assessment_id)
+    
+    def save_audit_log(self, audit_log: AuditLog) -> AuditLog:
+        self.audit_logs[audit_log.id] = audit_log
+        return audit_log
+    
+    def get_audit_log(self, audit_log_id: str) -> Optional[AuditLog]:
+        return self.audit_logs.get(audit_log_id)
+    
+    def get_all_audit_logs(self) -> List[AuditLog]:
+        return list(self.audit_logs.values())
 
 
 DATABASE_URL = os.getenv("DATABASE_URL")
@@ -87,6 +98,18 @@ if DATABASE_URL and create_engine is not None:
         overall_score = Column(Integer, nullable=True)
         overall_risk_level = Column(String, nullable=True)
         high_risk_categories = Column(JSON, nullable=True)
+
+    class AuditLogORM(Base):
+        __tablename__ = "audit_logs"
+        id = Column(String, primary_key=True, index=True)
+        assessment_id = Column(String, nullable=False)
+        company_name = Column(String, nullable=False)
+        email = Column(String, nullable=False)
+        score = Column(Integer, nullable=False)
+        email_status = Column(String, nullable=False)
+        attempts = Column(Integer, nullable=False)
+        error_message = Column(String, nullable=True)
+        timestamp = Column(DateTime, nullable=False)
 
     Base.metadata.create_all(bind=engine)
 
@@ -194,6 +217,60 @@ if DATABASE_URL and create_engine is not None:
                         "high_risk_categories": obj.high_risk_categories,
                     }
                     out.append(Lead.model_validate(data))
+                return out
+
+        def save_audit_log(self, audit_log: AuditLog) -> AuditLog:
+            with SessionLocal() as session:
+                obj = AuditLogORM(
+                    id=audit_log.id,
+                    assessment_id=audit_log.assessment_id,
+                    company_name=audit_log.company_name,
+                    email=str(audit_log.email),
+                    score=int(audit_log.score),
+                    email_status=str(audit_log.email_status),
+                    attempts=audit_log.attempts,
+                    error_message=audit_log.error_message,
+                    timestamp=audit_log.timestamp if isinstance(audit_log.timestamp, datetime) else datetime.fromisoformat(str(audit_log.timestamp)),
+                )
+                session.merge(obj)
+                session.commit()
+                return audit_log
+
+        def get_audit_log(self, audit_log_id: str) -> Optional[AuditLog]:
+            with SessionLocal() as session:
+                obj = session.get(AuditLogORM, audit_log_id)
+                if not obj:
+                    return None
+                data = {
+                    "id": obj.id,
+                    "assessment_id": obj.assessment_id,
+                    "company_name": obj.company_name,
+                    "email": obj.email,
+                    "score": float(obj.score),
+                    "email_status": obj.email_status,
+                    "attempts": obj.attempts,
+                    "error_message": obj.error_message,
+                    "timestamp": obj.timestamp.isoformat(),
+                }
+                return AuditLog.model_validate(data)
+
+        def get_all_audit_logs(self) -> List[AuditLog]:
+            with SessionLocal() as session:
+                rows = session.query(AuditLogORM).all()
+                out: List[AuditLog] = []
+                for obj in rows:
+                    data = {
+                        "id": obj.id,
+                        "assessment_id": obj.assessment_id,
+                        "company_name": obj.company_name,
+                        "email": obj.email,
+                        "score": float(obj.score),
+                        "email_status": obj.email_status,
+                        "attempts": obj.attempts,
+                        "error_message": obj.error_message,
+                        "timestamp": obj.timestamp.isoformat(),
+                    }
+                    out.append(AuditLog.model_validate(data))
                 return out
 
     db = SQLDatabase()
