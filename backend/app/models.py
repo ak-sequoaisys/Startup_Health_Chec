@@ -20,11 +20,20 @@ class ComplianceCategory(str, Enum):
     GOVERNANCE = "governance"
 
 
+CATEGORY_WEIGHTS = {
+    ComplianceCategory.REGISTRATION: 20,
+    ComplianceCategory.EMPLOYEE_DOCS: 15,
+    ComplianceCategory.PAYROLL_STATUTORY: 25,
+    ComplianceCategory.WORKPLACE_POLICIES: 15,
+    ComplianceCategory.LABOUR_FILINGS: 20,
+    ComplianceCategory.GOVERNANCE: 5,
+}
+
+
 class RiskLevel(str, Enum):
-    LOW = "low"
-    MEDIUM = "medium"
-    HIGH = "high"
-    CRITICAL = "critical"
+    HEALTHY = "healthy"
+    MODERATE = "moderate"
+    HIGH_RISK = "high_risk"
 
 
 class QuestionOption(BaseModel):
