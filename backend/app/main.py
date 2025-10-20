@@ -1,7 +1,10 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List
-from app.models import Question, AssessmentSubmission, AssessmentResult, Lead
+from datetime import datetime
+import hashlib
+import uuid
+from app.models import Question, AssessmentSubmission, AssessmentResult, Lead, StartAssessmentRequest, LeadStatus
 from app.questions_data import get_all_questions, get_question_by_id
 from app.assessment_service import calculate_assessment_result, create_lead_from_submission
 from app.database import db
@@ -20,6 +23,38 @@ app.add_middleware(
 @app.get("/healthz")
 async def healthz():
     return {"status": "ok"}
+
+
+@app.post("/api/v1/assessments/start", response_model=Lead)
+async def start_assessment(request: Request, data: StartAssessmentRequest):
+    try:
+        client_ip = request.client.host if request.client else "unknown"
+        ip_hash = hashlib.sha256(client_ip.encode()).hexdigest()
+        
+        user_agent = request.headers.get("user-agent", "unknown")
+        
+        lead = Lead(
+            id=str(uuid.uuid4()),
+            company_name=data.company_name,
+            contact_name="",
+            email=data.email,
+            company_size=data.employee_range,
+            industry=data.industry,
+            employee_range=data.employee_range,
+            operating_states=data.operating_states,
+            business_age=data.business_age,
+            consent=data.consent,
+            status=LeadStatus.STARTED,
+            ip_hash=ip_hash,
+            user_agent=user_agent,
+            submission_date=datetime.now(),
+        )
+        
+        db.save_lead(lead)
+        
+        return lead
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error starting assessment: {str(e)}")
 
 
 @app.get("/api/questions", response_model=List[Question])

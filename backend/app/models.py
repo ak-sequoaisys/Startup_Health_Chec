@@ -85,6 +85,22 @@ class AssessmentResult(BaseModel):
     priority_actions: List[str]
 
 
+class LeadStatus(str, Enum):
+    STARTED = "started"
+    IN_PROGRESS = "in_progress"
+    COMPLETED = "completed"
+
+
+class StartAssessmentRequest(BaseModel):
+    email: EmailStr
+    company_name: str
+    industry: Optional[str] = None
+    employee_range: str
+    operating_states: List[str]
+    business_age: Optional[str] = None
+    consent: bool
+
+
 class Lead(BaseModel):
     id: str
     company_name: str
@@ -93,7 +109,14 @@ class Lead(BaseModel):
     phone: Optional[str] = None
     company_size: str
     industry: Optional[str] = None
+    employee_range: Optional[str] = None
+    operating_states: Optional[List[str]] = None
+    business_age: Optional[str] = None
+    consent: bool = False
+    status: LeadStatus = LeadStatus.STARTED
+    ip_hash: Optional[str] = None
+    user_agent: Optional[str] = None
     submission_date: datetime
-    overall_score: int
-    overall_risk_level: RiskLevel
-    high_risk_categories: List[str]
+    overall_score: Optional[int] = None
+    overall_risk_level: Optional[RiskLevel] = None
+    high_risk_categories: Optional[List[str]] = None

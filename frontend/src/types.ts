@@ -67,3 +67,34 @@ export interface AssessmentResult {
   category_scores: CategoryScore[];
   priority_actions: string[];
 }
+
+export interface StartAssessmentRequest {
+  email: string;
+  company_name: string;
+  industry?: string;
+  employee_range: string;
+  operating_states: string[];
+  business_age?: string;
+  consent: boolean;
+}
+
+export interface Lead {
+  id: string;
+  company_name: string;
+  contact_name: string;
+  email: string;
+  phone?: string;
+  company_size: string;
+  industry?: string;
+  employee_range?: string;
+  operating_states?: string[];
+  business_age?: string;
+  consent: boolean;
+  status: string;
+  ip_hash?: string;
+  user_agent?: string;
+  submission_date: string;
+  overall_score?: number;
+  overall_risk_level?: RiskLevel;
+  high_risk_categories?: string[];
+}
