@@ -1,7 +1,7 @@
 import os
 from typing import Dict, List, Optional
 from datetime import datetime
-from app.models import AssessmentResult, Lead
+from app.models import AssessmentResult, Lead, InProgressAssessment
 
 try:
     from sqlalchemy import create_engine, Column, String, DateTime, Integer
@@ -22,6 +22,7 @@ class InMemoryDatabase:
     def __init__(self):
         self.assessments: Dict[str, AssessmentResult] = {}
         self.leads: Dict[str, Lead] = {}
+        self.in_progress_assessments: Dict[str, InProgressAssessment] = {}
     
     def save_assessment(self, assessment: AssessmentResult) -> AssessmentResult:
         self.assessments[assessment.id] = assessment
@@ -42,6 +43,13 @@ class InMemoryDatabase:
     
     def get_all_leads(self) -> List[Lead]:
         return list(self.leads.values())
+    
+    def save_in_progress_assessment(self, assessment: InProgressAssessment) -> InProgressAssessment:
+        self.in_progress_assessments[assessment.id] = assessment
+        return assessment
+    
+    def get_in_progress_assessment(self, assessment_id: str) -> Optional[InProgressAssessment]:
+        return self.in_progress_assessments.get(assessment_id)
 
 
 DATABASE_URL = os.getenv("DATABASE_URL")

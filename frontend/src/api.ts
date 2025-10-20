@@ -17,9 +17,27 @@ export async function startAssessment(data: StartAssessmentRequest): Promise<Lea
 }
 
 export async function fetchQuestions(): Promise<Question[]> {
-  const response = await fetch(`${API_URL}/api/questions`);
+  const response = await fetch(`${API_URL}/api/v1/questions`);
   if (!response.ok) {
     throw new Error("Failed to fetch questions");
+  }
+  return response.json();
+}
+
+export async function submitAnswer(assessmentId: string, questionId: string, answerValue: string): Promise<{ status: string; answers_count: number }> {
+  const response = await fetch(`${API_URL}/api/v1/assessments/answer`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      assessment_id: assessmentId,
+      question_id: questionId,
+      answer_value: answerValue,
+    }),
+  });
+  if (!response.ok) {
+    throw new Error("Failed to submit answer");
   }
   return response.json();
 }
@@ -27,7 +45,7 @@ export async function fetchQuestions(): Promise<Question[]> {
 export async function submitAssessment(
   submission: AssessmentSubmission
 ): Promise<AssessmentResult> {
-  const response = await fetch(`${API_URL}/api/assessments`, {
+  const response = await fetch(`${API_URL}/api/v1/assessments`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -43,7 +61,7 @@ export async function submitAssessment(
 export async function fetchAssessment(
   assessmentId: string
 ): Promise<AssessmentResult> {
-  const response = await fetch(`${API_URL}/api/assessments/${assessmentId}`);
+  const response = await fetch(`${API_URL}/api/v1/assessments/${assessmentId}`);
   if (!response.ok) {
     throw new Error("Failed to fetch assessment");
   }
