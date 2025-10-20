@@ -12,20 +12,28 @@ class QuestionType(str, Enum):
 
 
 class ComplianceCategory(str, Enum):
-    EMPLOYMENT_CONTRACTS = "employment_contracts"
-    WORKPLACE_SAFETY = "workplace_safety"
-    PAYROLL_TAX = "payroll_tax"
-    EMPLOYEE_BENEFITS = "employee_benefits"
+    REGISTRATION = "registration"
+    EMPLOYEE_DOCS = "employee_docs"
+    PAYROLL_STATUTORY = "payroll_statutory"
     WORKPLACE_POLICIES = "workplace_policies"
-    RECORD_KEEPING = "record_keeping"
-    TERMINATION_PROCEDURES = "termination_procedures"
+    LABOUR_FILINGS = "labour_filings"
+    GOVERNANCE = "governance"
+
+
+CATEGORY_WEIGHTS = {
+    ComplianceCategory.REGISTRATION: 20,
+    ComplianceCategory.EMPLOYEE_DOCS: 15,
+    ComplianceCategory.PAYROLL_STATUTORY: 25,
+    ComplianceCategory.WORKPLACE_POLICIES: 15,
+    ComplianceCategory.LABOUR_FILINGS: 20,
+    ComplianceCategory.GOVERNANCE: 5,
+}
 
 
 class RiskLevel(str, Enum):
-    LOW = "low"
-    MEDIUM = "medium"
-    HIGH = "high"
-    CRITICAL = "critical"
+    HEALTHY = "healthy"
+    MODERATE = "moderate"
+    HIGH_RISK = "high_risk"
 
 
 class QuestionOption(BaseModel):
@@ -33,6 +41,18 @@ class QuestionOption(BaseModel):
     text: str
     score: int
     risk_level: RiskLevel
+
+
+class ApplicabilityRule(BaseModel):
+    rule_type: str
+    threshold: Optional[int] = None
+    states: Optional[List[str]] = None
+
+
+class GovernmentSource(BaseModel):
+    name: str
+    url: str
+    description: Optional[str] = None
 
 
 class Question(BaseModel):
@@ -43,12 +63,28 @@ class Question(BaseModel):
     options: Optional[List[QuestionOption]] = None
     help_text: Optional[str] = None
     weight: int = 1
+    applicability_rules: Optional[List[ApplicabilityRule]] = None
+    government_sources: Optional[List[GovernmentSource]] = None
 
 
 class Answer(BaseModel):
     question_id: str
     answer_value: str
     score: int
+
+
+class AnswerRequest(BaseModel):
+    assessment_id: str
+    question_id: str
+    answer_value: str
+
+
+class InProgressAssessment(BaseModel):
+    id: str
+    lead_id: str
+    answers: List[Answer]
+    created_at: datetime
+    updated_at: datetime
 
 
 class AssessmentSubmission(BaseModel):
@@ -83,6 +119,23 @@ class AssessmentResult(BaseModel):
     overall_risk_level: RiskLevel
     category_scores: List[CategoryScore]
     priority_actions: List[str]
+    pdf_url: Optional[str] = None
+
+
+class LeadStatus(str, Enum):
+    STARTED = "started"
+    IN_PROGRESS = "in_progress"
+    COMPLETED = "completed"
+
+
+class StartAssessmentRequest(BaseModel):
+    email: EmailStr
+    company_name: str
+    industry: Optional[str] = None
+    employee_range: str
+    operating_states: List[str]
+    business_age: Optional[str] = None
+    consent: bool
 
 
 class Lead(BaseModel):
@@ -93,7 +146,32 @@ class Lead(BaseModel):
     phone: Optional[str] = None
     company_size: str
     industry: Optional[str] = None
+    employee_range: Optional[str] = None
+    operating_states: Optional[List[str]] = None
+    business_age: Optional[str] = None
+    consent: bool = False
+    status: LeadStatus = LeadStatus.STARTED
+    ip_hash: Optional[str] = None
+    user_agent: Optional[str] = None
     submission_date: datetime
-    overall_score: int
-    overall_risk_level: RiskLevel
-    high_risk_categories: List[str]
+    overall_score: Optional[int] = None
+    overall_risk_level: Optional[RiskLevel] = None
+    high_risk_categories: Optional[List[str]] = None
+
+
+class EmailStatus(str, Enum):
+    SUCCESS = "success"
+    FAILED = "failed"
+    PENDING = "pending"
+
+
+class AuditLog(BaseModel):
+    id: str
+    assessment_id: str
+    company_name: str
+    email: EmailStr
+    score: float
+    email_status: EmailStatus
+    attempts: int
+    error_message: Optional[str] = None
+    timestamp: datetime
