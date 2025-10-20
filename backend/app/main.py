@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from typing import List
 from datetime import datetime
 import hashlib
@@ -8,6 +9,7 @@ from app.models import Question, AssessmentSubmission, AssessmentResult, Lead, S
 from app.questions_data import get_all_questions, get_question_by_id
 from app.assessment_service import calculate_assessment_result, create_lead_from_submission
 from app.database import db
+from app.pdf_service import generate_pdf_report
 
 app = FastAPI(title="Startup Compliance Health Check API")
 
@@ -190,3 +192,23 @@ async def get_lead(lead_id: str):
     if not lead:
         raise HTTPException(status_code=404, detail="Lead not found")
     return lead
+
+
+@app.post("/api/v1/reports/generate")
+async def generate_report(assessment_id: str):
+    try:
+        assessment = db.get_assessment(assessment_id)
+        if not assessment:
+            raise HTTPException(status_code=404, detail="Assessment not found")
+        
+        pdf_path = generate_pdf_report(assessment)
+        
+        return FileResponse(
+            path=pdf_path,
+            media_type="application/pdf",
+            filename=f"compliance_report_{assessment.company_name.replace(' ', '_')}_{assessment.submission_date.strftime('%Y%m%d')}.pdf"
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error generating report: {str(e)}")

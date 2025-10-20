@@ -67,3 +67,13 @@ export async function fetchAssessment(
   }
   return response.json();
 }
+
+export async function generatePDFReport(assessmentId: string): Promise<Blob> {
+  const response = await fetch(`${API_URL}/api/v1/reports/generate?assessment_id=${assessmentId}`, {
+    method: "POST",
+  });
+  if (!response.ok) {
+    throw new Error("Failed to generate PDF report");
+  }
+  return response.blob();
+}

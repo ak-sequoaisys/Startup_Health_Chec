@@ -119,6 +119,7 @@ class AssessmentResult(BaseModel):
     overall_risk_level: RiskLevel
     category_scores: List[CategoryScore]
     priority_actions: List[str]
+    pdf_url: Optional[str] = None
 
 
 class LeadStatus(str, Enum):

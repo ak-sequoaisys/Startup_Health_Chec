@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Question, Answer, AssessmentResult } from "./types";
-import { fetchQuestions, submitAssessment, startAssessment } from "./api";
+import { fetchQuestions, submitAssessment, startAssessment, generatePDFReport } from "./api";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -144,8 +144,26 @@ function App() {
     });
   };
 
-  const handleDownloadPDF = () => {
-    alert("PDF download functionality coming soon!");
+  const handleDownloadPDF = async () => {
+    if (!result) return;
+    
+    try {
+      setLoading(true);
+      const pdfBlob = await generatePDFReport(result.id);
+      
+      const url = window.URL.createObjectURL(pdfBlob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `compliance_report_${result.company_name.replace(/\s+/g, "_")}_${new Date().toISOString().split("T")[0]}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      setError("Failed to generate PDF report. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleBookCall = () => {
