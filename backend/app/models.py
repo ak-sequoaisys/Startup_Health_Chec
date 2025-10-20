@@ -12,13 +12,12 @@ class QuestionType(str, Enum):
 
 
 class ComplianceCategory(str, Enum):
-    EMPLOYMENT_CONTRACTS = "employment_contracts"
-    WORKPLACE_SAFETY = "workplace_safety"
-    PAYROLL_TAX = "payroll_tax"
-    EMPLOYEE_BENEFITS = "employee_benefits"
+    REGISTRATION = "registration"
+    EMPLOYEE_DOCS = "employee_docs"
+    PAYROLL_STATUTORY = "payroll_statutory"
     WORKPLACE_POLICIES = "workplace_policies"
-    RECORD_KEEPING = "record_keeping"
-    TERMINATION_PROCEDURES = "termination_procedures"
+    LABOUR_FILINGS = "labour_filings"
+    GOVERNANCE = "governance"
 
 
 class RiskLevel(str, Enum):
@@ -35,6 +34,18 @@ class QuestionOption(BaseModel):
     risk_level: RiskLevel
 
 
+class ApplicabilityRule(BaseModel):
+    rule_type: str
+    threshold: Optional[int] = None
+    states: Optional[List[str]] = None
+
+
+class GovernmentSource(BaseModel):
+    name: str
+    url: str
+    description: Optional[str] = None
+
+
 class Question(BaseModel):
     id: str
     category: ComplianceCategory
@@ -43,12 +54,28 @@ class Question(BaseModel):
     options: Optional[List[QuestionOption]] = None
     help_text: Optional[str] = None
     weight: int = 1
+    applicability_rules: Optional[List[ApplicabilityRule]] = None
+    government_sources: Optional[List[GovernmentSource]] = None
 
 
 class Answer(BaseModel):
     question_id: str
     answer_value: str
     score: int
+
+
+class AnswerRequest(BaseModel):
+    assessment_id: str
+    question_id: str
+    answer_value: str
+
+
+class InProgressAssessment(BaseModel):
+    id: str
+    lead_id: str
+    answers: List[Answer]
+    created_at: datetime
+    updated_at: datetime
 
 
 class AssessmentSubmission(BaseModel):

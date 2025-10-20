@@ -1,13 +1,12 @@
 export type QuestionType = "multiple_choice" | "yes_no" | "text" | "number";
 
 export type ComplianceCategory =
-  | "employment_contracts"
-  | "workplace_safety"
-  | "payroll_tax"
-  | "employee_benefits"
+  | "registration"
+  | "employee_docs"
+  | "payroll_statutory"
   | "workplace_policies"
-  | "record_keeping"
-  | "termination_procedures";
+  | "labour_filings"
+  | "governance";
 
 export type RiskLevel = "low" | "medium" | "high" | "critical";
 
@@ -18,6 +17,18 @@ export interface QuestionOption {
   risk_level: RiskLevel;
 }
 
+export interface ApplicabilityRule {
+  rule_type: string;
+  threshold?: number;
+  states?: string[];
+}
+
+export interface GovernmentSource {
+  name: string;
+  url: string;
+  description?: string;
+}
+
 export interface Question {
   id: string;
   category: ComplianceCategory;
@@ -26,6 +37,8 @@ export interface Question {
   options?: QuestionOption[];
   help_text?: string;
   weight: number;
+  applicability_rules?: ApplicabilityRule[];
+  government_sources?: GovernmentSource[];
 }
 
 export interface Answer {

@@ -4,7 +4,7 @@ from typing import List
 from datetime import datetime
 import hashlib
 import uuid
-from app.models import Question, AssessmentSubmission, AssessmentResult, Lead, StartAssessmentRequest, LeadStatus
+from app.models import Question, AssessmentSubmission, AssessmentResult, Lead, StartAssessmentRequest, LeadStatus, AnswerRequest, InProgressAssessment, Answer
 from app.questions_data import get_all_questions, get_question_by_id
 from app.assessment_service import calculate_assessment_result, create_lead_from_submission
 from app.database import db
@@ -57,12 +57,12 @@ async def start_assessment(request: Request, data: StartAssessmentRequest):
         raise HTTPException(status_code=500, detail=f"Error starting assessment: {str(e)}")
 
 
-@app.get("/api/questions", response_model=List[Question])
+@app.get("/api/v1/questions", response_model=List[Question])
 async def get_questions():
     return get_all_questions()
 
 
-@app.get("/api/questions/{question_id}", response_model=Question)
+@app.get("/api/v1/questions/{question_id}", response_model=Question)
 async def get_question(question_id: str):
     question = get_question_by_id(question_id)
     if not question:
@@ -70,7 +70,56 @@ async def get_question(question_id: str):
     return question
 
 
-@app.post("/api/assessments", response_model=AssessmentResult)
+@app.post("/api/v1/assessments/answer")
+async def submit_answer(answer_request: AnswerRequest):
+    try:
+        question = get_question_by_id(answer_request.question_id)
+        if not question:
+            raise HTTPException(status_code=404, detail="Question not found")
+        
+        in_progress = db.get_in_progress_assessment(answer_request.assessment_id)
+        if not in_progress:
+            lead = db.get_lead(answer_request.assessment_id)
+            if not lead:
+                raise HTTPException(status_code=404, detail="Assessment not found")
+            
+            in_progress = InProgressAssessment(
+                id=answer_request.assessment_id,
+                lead_id=answer_request.assessment_id,
+                answers=[],
+                created_at=datetime.now(),
+                updated_at=datetime.now()
+            )
+        
+        score = 0
+        if question.options:
+            option = next((opt for opt in question.options if opt.id == answer_request.answer_value), None)
+            if option:
+                score = option.score
+        
+        existing_answer_idx = next((i for i, ans in enumerate(in_progress.answers) if ans.question_id == answer_request.question_id), None)
+        new_answer = Answer(
+            question_id=answer_request.question_id,
+            answer_value=answer_request.answer_value,
+            score=score
+        )
+        
+        if existing_answer_idx is not None:
+            in_progress.answers[existing_answer_idx] = new_answer
+        else:
+            in_progress.answers.append(new_answer)
+        
+        in_progress.updated_at = datetime.now()
+        db.save_in_progress_assessment(in_progress)
+        
+        return {"status": "success", "answers_count": len(in_progress.answers)}
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error saving answer: {str(e)}")
+
+
+@app.post("/api/v1/assessments", response_model=AssessmentResult)
 async def submit_assessment(submission: AssessmentSubmission):
     try:
         result = calculate_assessment_result(submission)
@@ -85,7 +134,7 @@ async def submit_assessment(submission: AssessmentSubmission):
         raise HTTPException(status_code=500, detail=f"Error processing assessment: {str(e)}")
 
 
-@app.get("/api/assessments/{assessment_id}", response_model=AssessmentResult)
+@app.get("/api/v1/assessments/{assessment_id}", response_model=AssessmentResult)
 async def get_assessment(assessment_id: str):
     assessment = db.get_assessment(assessment_id)
     if not assessment:
@@ -93,17 +142,17 @@ async def get_assessment(assessment_id: str):
     return assessment
 
 
-@app.get("/api/assessments", response_model=List[AssessmentResult])
+@app.get("/api/v1/assessments", response_model=List[AssessmentResult])
 async def get_all_assessments():
     return db.get_all_assessments()
 
 
-@app.get("/api/leads", response_model=List[Lead])
+@app.get("/api/v1/leads", response_model=List[Lead])
 async def get_leads():
     return db.get_all_leads()
 
 
-@app.get("/api/leads/{lead_id}", response_model=Lead)
+@app.get("/api/v1/leads/{lead_id}", response_model=Lead)
 async def get_lead(lead_id: str):
     lead = db.get_lead(lead_id)
     if not lead:
