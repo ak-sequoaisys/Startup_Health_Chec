@@ -61,6 +61,18 @@ class InMemoryDatabase:
     
     def get_all_audit_logs(self) -> List[AuditLog]:
         return list(self.audit_logs.values())
+    
+    def delete_assessment(self, assessment_id: str) -> bool:
+        if assessment_id in self.assessments:
+            del self.assessments[assessment_id]
+            return True
+        return False
+    
+    def delete_lead(self, lead_id: str) -> bool:
+        if lead_id in self.leads:
+            del self.leads[lead_id]
+            return True
+        return False
 
 
 DATABASE_URL = os.getenv("DATABASE_URL")
@@ -272,6 +284,24 @@ if DATABASE_URL and create_engine is not None:
                     }
                     out.append(AuditLog.model_validate(data))
                 return out
+        
+        def delete_assessment(self, assessment_id: str) -> bool:
+            with SessionLocal() as session:
+                obj = session.get(AssessmentORM, assessment_id)
+                if obj:
+                    session.delete(obj)
+                    session.commit()
+                    return True
+                return False
+        
+        def delete_lead(self, lead_id: str) -> bool:
+            with SessionLocal() as session:
+                obj = session.get(LeadORM, lead_id)
+                if obj:
+                    session.delete(obj)
+                    session.commit()
+                    return True
+                return False
 
     db = SQLDatabase()
 else:

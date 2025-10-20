@@ -5,6 +5,10 @@ from typing import List, Optional
 from datetime import datetime
 import hashlib
 import uuid
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+from slowapi.middleware import SlowAPIMiddleware
 from app.models import Question, AssessmentSubmission, AssessmentResult, Lead, StartAssessmentRequest, LeadStatus, AnswerRequest, InProgressAssessment, Answer, AuditLog
 from app.questions_data import get_all_questions, get_question_by_id
 from app.assessment_service import calculate_assessment_result, create_lead_from_submission
@@ -14,8 +18,13 @@ from app.email_service import email_service
 from app.admin_models import TrialRecord, TrialFilters
 from app.admin_service import get_trials, export_trials_csv
 from app.auth import get_current_user
+from app.security import sanitize_input, sanitize_email, encryption_service
 
+limiter = Limiter(key_func=get_remote_address)
 app = FastAPI(title="Startup Compliance Health Check API")
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_middleware(SlowAPIMiddleware)
 
 app.add_middleware(
     CORSMiddleware,
@@ -26,12 +35,25 @@ app.add_middleware(
 )
 
 
+@app.middleware("http")
+async def add_security_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    response.headers["X-Frame-Options"] = "DENY"
+    response.headers["X-XSS-Protection"] = "1; mode=block"
+    response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+    response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+    return response
+
+
 @app.get("/healthz")
 async def healthz():
     return {"status": "ok"}
 
 
 @app.post("/api/v1/assessments/start", response_model=Lead)
+@limiter.limit("60/minute")
 async def start_assessment(request: Request, data: StartAssessmentRequest):
     try:
         client_ip = request.client.host if request.client else "unknown"
@@ -39,13 +61,19 @@ async def start_assessment(request: Request, data: StartAssessmentRequest):
         
         user_agent = request.headers.get("user-agent", "unknown")
         
+        company_name = sanitize_input(data.company_name)
+        industry = sanitize_input(data.industry) if data.industry else None
+        email = sanitize_email(str(data.email))
+        
+        encrypted_email = encryption_service.encrypt(email)
+        
         lead = Lead(
             id=str(uuid.uuid4()),
-            company_name=data.company_name,
+            company_name=company_name,
             contact_name="",
-            email=data.email,
+            email=encrypted_email,
             company_size=data.employee_range,
-            industry=data.industry,
+            industry=industry,
             employee_range=data.employee_range,
             operating_states=data.operating_states,
             business_age=data.business_age,
@@ -57,6 +85,8 @@ async def start_assessment(request: Request, data: StartAssessmentRequest):
         )
         
         db.save_lead(lead)
+        
+        lead.email = email
         
         return lead
     except Exception as e:
@@ -77,7 +107,8 @@ async def get_question(question_id: str):
 
 
 @app.post("/api/v1/assessments/answer")
-async def submit_answer(answer_request: AnswerRequest):
+@limiter.limit("60/minute")
+async def submit_answer(request: Request, answer_request: AnswerRequest):
     try:
         question = get_question_by_id(answer_request.question_id)
         if not question:
@@ -106,7 +137,7 @@ async def submit_answer(answer_request: AnswerRequest):
         existing_answer_idx = next((i for i, ans in enumerate(in_progress.answers) if ans.question_id == answer_request.question_id), None)
         new_answer = Answer(
             question_id=answer_request.question_id,
-            answer_value=answer_request.answer_value,
+            answer_value=sanitize_input(answer_request.answer_value),
             score=score
         )
         
@@ -141,13 +172,22 @@ async def submit_assessment(submission: AssessmentSubmission):
 
 
 @app.post("/api/v1/assessments/compute")
-async def compute_assessment(submission: AssessmentSubmission):
+@limiter.limit("60/minute")
+async def compute_assessment(request: Request, submission: AssessmentSubmission):
     try:
+        submission.company_name = sanitize_input(submission.company_name)
+        submission.contact_name = sanitize_input(submission.contact_name)
+        submission.email = sanitize_email(str(submission.email))
+        if submission.industry:
+            submission.industry = sanitize_input(submission.industry)
+        
         result = calculate_assessment_result(submission)
         
+        result.email = encryption_service.encrypt(str(result.email))
         db.save_assessment(result)
         
         lead = create_lead_from_submission(submission, result)
+        lead.email = encryption_service.encrypt(str(lead.email))
         db.save_lead(lead)
         
         try:
@@ -204,7 +244,8 @@ async def get_lead(lead_id: str):
 
 
 @app.post("/api/v1/reports/generate")
-async def generate_report(assessment_id: str):
+@limiter.limit("60/minute")
+async def generate_report(request: Request, assessment_id: str):
     try:
         assessment = db.get_assessment(assessment_id)
         if not assessment:
@@ -298,3 +339,49 @@ async def export_admin_trials(
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error exporting trials: {str(e)}")
+
+
+@app.post("/api/v1/privacy/delete-my-data")
+@limiter.limit("10/hour")
+async def delete_my_data(request: Request, email: str):
+    try:
+        email = sanitize_email(email)
+        encrypted_email = encryption_service.encrypt(email)
+        
+        deleted_count = 0
+        
+        all_leads = db.get_all_leads()
+        for lead in all_leads:
+            try:
+                decrypted_email = encryption_service.decrypt(str(lead.email))
+                if decrypted_email == email or str(lead.email) == email:
+                    if hasattr(db, 'delete_lead'):
+                        db.delete_lead(lead.id)
+                    deleted_count += 1
+            except Exception:
+                if str(lead.email) == email or str(lead.email) == encrypted_email:
+                    if hasattr(db, 'delete_lead'):
+                        db.delete_lead(lead.id)
+                    deleted_count += 1
+        
+        all_assessments = db.get_all_assessments()
+        for assessment in all_assessments:
+            try:
+                decrypted_email = encryption_service.decrypt(str(assessment.email))
+                if decrypted_email == email or str(assessment.email) == email:
+                    if hasattr(db, 'delete_assessment'):
+                        db.delete_assessment(assessment.id)
+                    deleted_count += 1
+            except Exception:
+                if str(assessment.email) == email or str(assessment.email) == encrypted_email:
+                    if hasattr(db, 'delete_assessment'):
+                        db.delete_assessment(assessment.id)
+                    deleted_count += 1
+        
+        return {
+            "status": "success",
+            "message": f"Data deletion request processed. {deleted_count} records found and marked for deletion.",
+            "email": email
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error processing data deletion request: {str(e)}")

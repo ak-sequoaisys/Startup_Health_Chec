@@ -14,6 +14,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CheckCircle2, AlertTriangle, XCircle, Info, Download, Calendar, ExternalLink, Share2 } from "lucide-react";
 import { initializeGTM, trackStartAssessment, trackAnswerQuestion, trackViewResults, trackReportDownload } from "./analytics";
+import { TurnstileWrapper } from "./components/Turnstile";
 
 type Step = "intro" | "contact" | "assessment" | "results";
 
@@ -44,6 +45,8 @@ function App() {
   const [result, setResult] = useState<AssessmentResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
+  const [reportTurnstileToken, setReportTurnstileToken] = useState<string | null>(null);
 
   useEffect(() => {
     initializeGTM();
@@ -70,7 +73,8 @@ function App() {
       contactInfo.company_name &&
       contactInfo.employee_range &&
       contactInfo.operating_states.length > 0 &&
-      contactInfo.consent
+      contactInfo.consent &&
+      turnstileToken
     ) {
       setLoading(true);
       setError(null);
@@ -87,6 +91,8 @@ function App() {
       } finally {
         setLoading(false);
       }
+    } else if (!turnstileToken) {
+      setError("Please complete the security verification.");
     }
   };
 
@@ -173,6 +179,11 @@ function App() {
   const handleDownloadPDF = async () => {
     if (!result) return;
     
+    if (!reportTurnstileToken) {
+      setError("Please complete the security verification before downloading the report.");
+      return;
+    }
+    
     try {
       setLoading(true);
       const pdfBlob = await generatePDFReport(result.id);
@@ -192,6 +203,8 @@ function App() {
         overall_percentage: result.overall_percentage,
         risk_level: result.overall_risk_level,
       });
+      
+      setReportTurnstileToken(null);
     } catch (err) {
       setError("Failed to generate PDF report. Please try again.");
     } finally {
@@ -451,6 +464,16 @@ function App() {
                   collection of my information for assessment purposes. *
                 </Label>
               </div>
+              <div className="pt-4">
+                <Label className="text-sm font-medium mb-2 block">Security Verification *</Label>
+                <TurnstileWrapper
+                  onSuccess={(token) => setTurnstileToken(token)}
+                  onError={() => {
+                    setTurnstileToken(null);
+                    setError("Security verification failed. Please try again.");
+                  }}
+                />
+              </div>
               {error && (
                 <Alert variant="destructive">
                   <AlertDescription>{error}</AlertDescription>
@@ -469,7 +492,7 @@ function App() {
                 <Button 
                   type="submit" 
                   className="flex-1 bg-primary hover:bg-primary-700 text-primary-foreground"
-                  disabled={loading}
+                  disabled={loading || !turnstileToken}
                 >
                   {loading ? "Starting..." : "Start Assessment"}
                 </Button>
@@ -644,31 +667,44 @@ function App() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Button
-                  onClick={handleDownloadPDF}
-                  className="bg-primary hover:bg-primary-700 text-primary-foreground h-auto py-4 flex flex-col gap-2"
-                  size="lg"
-                >
-                  <Download className="w-6 h-6" />
-                  <span className="font-semibold">Download PDF Report</span>
-                </Button>
-                <Button
-                  onClick={handleBookCall}
-                  className="bg-success hover:bg-success/90 text-success-foreground h-auto py-4 flex flex-col gap-2"
-                  size="lg"
-                >
-                  <Calendar className="w-6 h-6" />
-                  <span className="font-semibold">Book a Call</span>
-                </Button>
-                <Button
-                  onClick={handleExploreOffrd}
-                  className="bg-secondary hover:bg-secondary/90 text-secondary-foreground h-auto py-4 flex flex-col gap-2"
-                  size="lg"
-                >
-                  <ExternalLink className="w-6 h-6" />
-                  <span className="font-semibold">Explore Offrd</span>
-                </Button>
+              <div className="space-y-4">
+                <div className="bg-accent/50 p-4 rounded-lg border">
+                  <Label className="text-sm font-medium mb-3 block">Security Verification Required for PDF Download</Label>
+                  <TurnstileWrapper
+                    onSuccess={(token) => setReportTurnstileToken(token)}
+                    onError={() => {
+                      setReportTurnstileToken(null);
+                      setError("Security verification failed. Please try again.");
+                    }}
+                  />
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <Button
+                    onClick={handleDownloadPDF}
+                    className="bg-primary hover:bg-primary-700 text-primary-foreground h-auto py-4 flex flex-col gap-2"
+                    size="lg"
+                    disabled={!reportTurnstileToken || loading}
+                  >
+                    <Download className="w-6 h-6" />
+                    <span className="font-semibold">Download PDF Report</span>
+                  </Button>
+                  <Button
+                    onClick={handleBookCall}
+                    className="bg-success hover:bg-success/90 text-success-foreground h-auto py-4 flex flex-col gap-2"
+                    size="lg"
+                  >
+                    <Calendar className="w-6 h-6" />
+                    <span className="font-semibold">Book a Call</span>
+                  </Button>
+                  <Button
+                    onClick={handleExploreOffrd}
+                    className="bg-secondary hover:bg-secondary/90 text-secondary-foreground h-auto py-4 flex flex-col gap-2"
+                    size="lg"
+                  >
+                    <ExternalLink className="w-6 h-6" />
+                    <span className="font-semibold">Explore Offrd</span>
+                  </Button>
+                </div>
               </div>
 
               <Separator className="my-8" />
