@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Question, Answer, AssessmentResult, Lead } from "./types";
+import { Question, Answer, AssessmentResult } from "./types";
 import { fetchQuestions, submitAssessment, startAssessment } from "./api";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { CheckCircle2, AlertTriangle, XCircle, Info } from "lucide-react";
+import { CheckCircle2, AlertTriangle, XCircle, Info, Download, Calendar, ExternalLink, Share2 } from "lucide-react";
 
 type Step = "intro" | "contact" | "assessment" | "results";
 
@@ -40,7 +40,6 @@ function App() {
     business_age: "",
     consent: false,
   });
-  const [leadId, setLeadId] = useState<string | null>(null);
   const [result, setResult] = useState<AssessmentResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -53,7 +52,7 @@ function App() {
     try {
       const data = await fetchQuestions();
       setQuestions(data);
-    } catch (err) {
+    } catch {
       setError("Failed to load questions. Please refresh the page.");
     }
   };
@@ -74,10 +73,9 @@ function App() {
       setLoading(true);
       setError(null);
       try {
-        const lead = await startAssessment(contactInfo);
-        setLeadId(lead.id);
+        await startAssessment(contactInfo);
         setStep("assessment");
-      } catch (err) {
+      } catch {
         setError("Failed to start assessment. Please try again.");
       } finally {
         setLoading(false);
@@ -121,22 +119,53 @@ function App() {
     setError(null);
     try {
       const submission = {
-        ...contactInfo,
+        company_name: contactInfo.company_name,
+        contact_name: contactInfo.company_name,
+        email: contactInfo.email,
+        company_size: contactInfo.employee_range,
+        industry: contactInfo.industry,
         answers: answers,
       };
       const assessmentResult = await submitAssessment(submission);
       setResult(assessmentResult);
       setStep("results");
-    } catch (err) {
+      window.history.pushState({}, "", `?result=${assessmentResult.id}`);
+    } catch {
       setError("Failed to submit assessment. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
+  const handleShareResult = () => {
+    const url = window.location.href;
+    navigator.clipboard.writeText(url).then(() => {
+      alert("Result link copied to clipboard!");
+    });
+  };
+
+  const handleDownloadPDF = () => {
+    alert("PDF download functionality coming soon!");
+  };
+
+  const handleBookCall = () => {
+    window.open("https://calendly.com/offrd", "_blank");
+  };
+
+  const handleExploreOffrd = () => {
+    window.open("https://offrd.com.au", "_blank");
+  };
+
   const currentQuestion = questions[currentQuestionIndex];
   const currentAnswer = answers.find((a) => a.question_id === currentQuestion?.id);
   const progress = ((currentQuestionIndex + 1) / questions.length) * 100;
+
+  const getScoreColor = (percentage: number) => {
+    if (percentage >= 71) return "text-success";
+    if (percentage >= 41) return "text-warning";
+    return "text-danger";
+  };
+
 
   const getRiskLevelColor = (level: string) => {
     switch (level) {
@@ -517,11 +546,13 @@ function App() {
   }
 
   if (step === "results" && result) {
+    const overallPercentage = Math.round(result.overall_percentage);
+    
     return (
       <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 p-4 py-8">
-        <div className="max-w-4xl mx-auto space-y-6">
+        <div className="max-w-5xl mx-auto space-y-6">
           <Card>
-            <CardHeader className="text-center">
+            <CardHeader className="text-center pb-4">
               <CardTitle className="text-3xl font-bold">
                 Your Compliance Health Check Results
               </CardTitle>
@@ -530,110 +561,185 @@ function App() {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="flex items-center justify-center gap-4 p-6 bg-gradient-to-r from-primary-50 to-accent rounded-lg">
-                <div className="text-center">
-                  <div className="text-5xl font-bold text-primary">
-                    {Math.round(result.overall_percentage)}%
+              <div className="relative p-8 bg-gradient-to-br from-white to-accent rounded-xl border-2 border-primary/10 shadow-lg">
+                <div className="flex flex-col md:flex-row items-center justify-center gap-8">
+                  <div className="text-center">
+                    <div className={`text-7xl font-bold ${getScoreColor(overallPercentage)} drop-shadow-md`}>
+                      {overallPercentage}%
+                    </div>
+                    <div className="text-sm font-medium text-muted-foreground mt-3 uppercase tracking-wide">
+                      Overall Compliance Score
+                    </div>
                   </div>
-                  <div className="text-sm text-muted-foreground mt-2">Overall Score</div>
+                  <div className="flex flex-col items-center gap-3">
+                    {getRiskLevelIcon(result.overall_risk_level)}
+                    <Badge
+                      className={`${getRiskLevelColor(result.overall_risk_level)} text-white text-base px-6 py-2 shadow-md`}
+                    >
+                      {result.overall_risk_level.toUpperCase()} RISK
+                    </Badge>
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  {getRiskLevelIcon(result.overall_risk_level)}
-                  <Badge
-                    className={`${getRiskLevelColor(result.overall_risk_level)} text-white text-lg px-4 py-2`}
+                <div className="mt-6 flex justify-center">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleShareResult}
+                    className="gap-2"
                   >
-                    {result.overall_risk_level.toUpperCase()}
-                  </Badge>
+                    <Share2 className="w-4 h-4" />
+                    Share Results
+                  </Button>
                 </div>
               </div>
 
-              <Separator />
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Button
+                  onClick={handleDownloadPDF}
+                  className="bg-primary hover:bg-primary-700 text-primary-foreground h-auto py-4 flex flex-col gap-2"
+                  size="lg"
+                >
+                  <Download className="w-6 h-6" />
+                  <span className="font-semibold">Download PDF Report</span>
+                </Button>
+                <Button
+                  onClick={handleBookCall}
+                  className="bg-success hover:bg-success/90 text-success-foreground h-auto py-4 flex flex-col gap-2"
+                  size="lg"
+                >
+                  <Calendar className="w-6 h-6" />
+                  <span className="font-semibold">Book a Call</span>
+                </Button>
+                <Button
+                  onClick={handleExploreOffrd}
+                  className="bg-secondary hover:bg-secondary/90 text-secondary-foreground h-auto py-4 flex flex-col gap-2"
+                  size="lg"
+                >
+                  <ExternalLink className="w-6 h-6" />
+                  <span className="font-semibold">Explore Offrd</span>
+                </Button>
+              </div>
+
+              <Separator className="my-8" />
 
               <div>
-                <h3 className="text-xl font-semibold mb-4">Priority Actions</h3>
+                <div className="flex items-center gap-2 mb-4">
+                  <AlertTriangle className="w-6 h-6 text-danger" />
+                  <h3 className="text-2xl font-bold">Top Priority Actions</h3>
+                </div>
                 <div className="space-y-3">
-                  {result.priority_actions.map((action, index) => (
-                    <Alert key={index}>
-                      <AlertDescription className="flex items-start gap-2">
-                        <span className="font-semibold text-primary">
-                          {index + 1}.
+                  {result.priority_actions.slice(0, 5).map((action, index) => (
+                    <Alert key={index} className="border-l-4 border-l-danger bg-danger/5">
+                      <AlertDescription className="flex items-start gap-3">
+                        <span className="flex-shrink-0 w-7 h-7 rounded-full bg-danger text-white font-bold flex items-center justify-center text-sm">
+                          {index + 1}
                         </span>
-                        <span>{action}</span>
+                        <span className="text-base">{action}</span>
                       </AlertDescription>
                     </Alert>
                   ))}
                 </div>
               </div>
 
-              <Separator />
+              <Separator className="my-8" />
 
               <div>
-                <h3 className="text-xl font-semibold mb-4">Category Breakdown</h3>
-                <div className="space-y-4">
-                  {result.category_scores.map((category) => (
-                    <Card key={category.category}>
-                      <CardHeader>
-                        <div className="flex items-center justify-between">
-                          <CardTitle className="text-lg">
-                            {formatCategoryName(category.category)}
-                          </CardTitle>
-                          <div className="flex items-center gap-2">
-                            <span className="text-2xl font-bold">
-                              {Math.round(category.percentage)}%
-                            </span>
-                            <Badge
-                              className={`${getRiskLevelColor(category.risk_level)} text-white`}
-                            >
-                              {category.risk_level}
-                            </Badge>
+                <h3 className="text-2xl font-bold mb-6">Compliance Category Breakdown</h3>
+                <div className="space-y-5">
+                  {result.category_scores.map((category) => {
+                    const categoryPercentage = Math.round(category.percentage);
+                    return (
+                      <Card key={category.category} className="overflow-hidden border-2">
+                        <CardHeader className="pb-3">
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                            <CardTitle className="text-xl">
+                              {formatCategoryName(category.category)}
+                            </CardTitle>
+                            <div className="flex items-center gap-3">
+                              <span className={`text-3xl font-bold ${getScoreColor(categoryPercentage)}`}>
+                                {categoryPercentage}%
+                              </span>
+                              <Badge
+                                className={`${getRiskLevelColor(category.risk_level)} text-white px-3 py-1`}
+                              >
+                                {category.risk_level.toUpperCase()}
+                              </Badge>
+                            </div>
                           </div>
-                        </div>
-                        <Progress value={category.percentage} className="h-2 mt-2" />
-                      </CardHeader>
-                      <CardContent className="space-y-3">
-                        {category.issues.length > 0 && (
-                          <div>
-                            <h4 className="font-semibold text-sm text-destructive mb-2">
-                              Issues Identified:
-                            </h4>
-                            <ul className="list-disc list-inside space-y-1 text-sm">
-                              {category.issues.map((issue, idx) => (
-                                <li key={idx} className="text-foreground">
-                                  {issue}
-                                </li>
-                              ))}
-                            </ul>
+                          <div className="mt-3">
+                            <Progress 
+                              value={category.percentage} 
+                              className="h-3"
+                            />
                           </div>
-                        )}
-                        {category.recommendations.length > 0 && (
-                          <div>
-                            <h4 className="font-semibold text-sm text-primary mb-2">
-                              Recommendations:
-                            </h4>
-                            <ul className="list-disc list-inside space-y-1 text-sm">
-                              {category.recommendations.map((rec, idx) => (
-                                <li key={idx} className="text-foreground">
-                                  {rec}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                      </CardContent>
-                    </Card>
-                  ))}
+                        </CardHeader>
+                        <CardContent className="space-y-4 pt-2">
+                          {category.issues.length > 0 && (
+                            <div className="bg-destructive/5 p-4 rounded-lg border border-destructive/20">
+                              <h4 className="font-bold text-sm text-destructive mb-3 flex items-center gap-2">
+                                <XCircle className="w-4 h-4" />
+                                Gaps Identified ({category.issues.length})
+                              </h4>
+                              <ul className="space-y-2">
+                                {category.issues.map((issue, idx) => (
+                                  <li key={idx} className="flex items-start gap-2 text-sm">
+                                    <span className="text-destructive mt-0.5">•</span>
+                                    <span className="text-foreground">{issue}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                          {category.recommendations.length > 0 && (
+                            <div className="bg-primary/5 p-4 rounded-lg border border-primary/20">
+                              <h4 className="font-bold text-sm text-primary mb-3 flex items-center gap-2">
+                                <CheckCircle2 className="w-4 h-4" />
+                                Recommended Actions ({category.recommendations.length})
+                              </h4>
+                              <ul className="space-y-2">
+                                {category.recommendations.map((rec, idx) => (
+                                  <li key={idx} className="flex items-start gap-2 text-sm">
+                                    <span className="text-primary mt-0.5">•</span>
+                                    <span className="text-foreground">{rec}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
                 </div>
               </div>
 
-              <div className="bg-accent p-6 rounded-lg text-center">
-                <h3 className="text-xl font-semibold mb-2">Need Help?</h3>
-                <p className="text-foreground mb-4">
-                  Our compliance experts can help you address these issues and ensure
-                  your business is fully compliant.
+              <Separator className="my-8" />
+
+              <div className="bg-gradient-to-br from-primary/10 to-accent p-8 rounded-xl text-center border-2 border-primary/20">
+                <h3 className="text-2xl font-bold mb-3">Ready to Achieve Full Compliance?</h3>
+                <p className="text-foreground text-lg mb-6 max-w-2xl mx-auto">
+                  Our compliance experts at Offrd can help you address these gaps and ensure
+                  your business meets all Australian HR and labour compliance requirements.
                 </p>
-                <Button className="bg-primary hover:bg-primary-700 text-primary-foreground" size="lg">
-                  Schedule a Consultation
-                </Button>
+                <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                  <Button 
+                    onClick={handleBookCall}
+                    className="bg-primary hover:bg-primary-700 text-primary-foreground gap-2" 
+                    size="lg"
+                  >
+                    <Calendar className="w-5 h-5" />
+                    Schedule a Free Consultation
+                  </Button>
+                  <Button 
+                    onClick={handleExploreOffrd}
+                    variant="outline"
+                    className="gap-2 bg-white hover:bg-accent" 
+                    size="lg"
+                  >
+                    <ExternalLink className="w-5 h-5" />
+                    Learn More About Offrd
+                  </Button>
+                </div>
               </div>
             </CardContent>
           </Card>
