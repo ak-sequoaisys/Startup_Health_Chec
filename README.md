@@ -26,7 +26,7 @@ This application provides a comprehensive 15-question assessment covering key co
 
 ### Backend
 - **Framework**: FastAPI (Python)
-- **Database**: In-memory storage (proof of concept)
+- **Database**: PostgreSQL with SQLAlchemy ORM (falls back to in-memory if not configured)
 - **API**: RESTful endpoints for questions, assessments, and leads
 - **Validation**: Pydantic models for data validation
 
@@ -36,6 +36,11 @@ This application provides a comprehensive 15-question assessment covering key co
 - **Styling**: Tailwind CSS
 - **UI Components**: shadcn/ui
 - **Icons**: Lucide React
+
+### Infrastructure
+- **Containerization**: Docker & Docker Compose
+- **Database**: PostgreSQL 16
+- **Dev Containers**: VS Code dev container support
 
 ## Project Structure
 
@@ -47,9 +52,10 @@ Startup_Health_Chec/
 │   │   ├── models.py            # Pydantic models
 │   │   ├── questions_data.py    # Assessment questions
 │   │   ├── assessment_service.py # Scoring and recommendation logic
-│   │   └── database.py          # In-memory database
+│   │   └── database.py          # Database layer (PostgreSQL/in-memory)
 │   ├── pyproject.toml           # Python dependencies
-│   └── README.md
+│   ├── Dockerfile               # Backend Docker image
+│   └── .env.example             # Backend environment variables template
 ├── frontend/
 │   ├── src/
 │   │   ├── App.tsx              # Main application component
@@ -57,20 +63,79 @@ Startup_Health_Chec/
 │   │   ├── api.ts               # API client functions
 │   │   └── components/          # UI components
 │   ├── package.json             # Node dependencies
-│   └── .env                     # Environment variables
+│   ├── Dockerfile               # Frontend Docker image
+│   └── .env.example             # Frontend environment variables template
+├── .devcontainer/
+│   └── devcontainer.json        # VS Code dev container configuration
+├── docker-compose.yml           # Docker Compose orchestration
+├── .env.example                 # Root environment variables template
 └── README.md
 ```
 
 ## Getting Started
 
-### Prerequisites
+### Option 1: Docker Compose (Recommended)
 
+This is the easiest way to get started with all services running together.
+
+#### Prerequisites
+- Docker
+- Docker Compose
+
+#### Setup Steps
+
+1. Clone the repository:
+   ```bash
+   git clone <repository-url>
+   cd Startup_Health_Chec
+   ```
+
+2. Create environment file:
+   ```bash
+   cp .env.example .env
+   ```
+   
+   Edit `.env` and configure your settings (optional for local development, defaults work out of the box).
+
+3. Start all services:
+   ```bash
+   docker-compose up -d
+   ```
+
+   This will start:
+   - PostgreSQL database on port 5432
+   - Backend API on port 8000
+   - Frontend app on port 5173
+
+4. Access the application:
+   - Frontend: http://localhost:5173
+   - Backend API: http://localhost:8000
+   - API Documentation: http://localhost:8000/docs
+
+5. View logs:
+   ```bash
+   docker-compose logs -f
+   ```
+
+6. Stop services:
+   ```bash
+   docker-compose down
+   ```
+
+7. Stop services and remove data:
+   ```bash
+   docker-compose down -v
+   ```
+
+### Option 2: Local Development (Without Docker)
+
+#### Prerequisites
 - Python 3.12+
 - Node.js 18+
 - Poetry (Python package manager)
-- npm or yarn
+- PostgreSQL 16+ (optional, will use in-memory storage if not configured)
 
-### Backend Setup
+#### Backend Setup
 
 1. Navigate to the backend directory:
    ```bash
@@ -82,18 +147,30 @@ Startup_Health_Chec/
    poetry install
    ```
 
-3. Start the development server:
+3. (Optional) Configure PostgreSQL:
+   ```bash
+   cp .env.example .env
+   ```
+   
+   Edit `.env` and set your `DATABASE_URL`:
+   ```
+   DATABASE_URL=postgresql://username:password@localhost:5432/startup_health_check
+   ```
+   
+   If you don't configure this, the app will use in-memory storage.
+
+4. Start the development server:
    ```bash
    poetry run fastapi dev app/main.py
    ```
 
    The backend will be available at `http://localhost:8000`
 
-4. View API documentation:
+5. View API documentation:
    - Swagger UI: `http://localhost:8000/docs`
    - ReDoc: `http://localhost:8000/redoc`
 
-### Frontend Setup
+#### Frontend Setup
 
 1. Navigate to the frontend directory:
    ```bash
@@ -106,10 +183,11 @@ Startup_Health_Chec/
    ```
 
 3. Configure environment variables:
-   Create a `.env` file with:
+   ```bash
+   cp .env.example .env
    ```
-   VITE_API_URL=http://localhost:8000
-   ```
+   
+   The default configuration points to `http://localhost:8000` which should work if you're running the backend locally.
 
 4. Start the development server:
    ```bash
@@ -117,6 +195,81 @@ Startup_Health_Chec/
    ```
 
    The frontend will be available at `http://localhost:5173`
+
+### Option 3: VS Code Dev Containers
+
+If you use VS Code, you can develop inside a container with all dependencies pre-configured.
+
+#### Prerequisites
+- Docker
+- VS Code
+- Remote - Containers extension
+
+#### Setup Steps
+
+1. Open the project in VS Code
+2. Press `F1` and select "Remote-Containers: Reopen in Container"
+3. Wait for the container to build and start
+4. The backend will be available at `http://localhost:8000`
+5. Open a new terminal and navigate to frontend to start it separately if needed
+
+## Environment Variables
+
+### Root `.env` (for Docker Compose)
+
+```bash
+# PostgreSQL Configuration
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=postgres
+POSTGRES_DB=startup_health_check
+POSTGRES_PORT=5432
+
+# Backend Configuration
+DATABASE_URL=postgresql://postgres:postgres@postgres:5432/startup_health_check
+
+# SMTP Configuration (for email notifications)
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587
+SMTP_USER=your-smtp-username
+SMTP_PASSWORD=your-smtp-password
+SMTP_FROM_EMAIL=noreply@example.com
+
+# AWS SES Configuration (alternative to SMTP)
+AWS_ACCESS_KEY_ID=your-aws-access-key-id
+AWS_SECRET_ACCESS_KEY=your-aws-secret-access-key
+AWS_REGION=us-east-1
+SES_FROM_EMAIL=noreply@example.com
+
+# Frontend Configuration
+VITE_API_URL=http://localhost:8000
+```
+
+### Backend `.env`
+
+```bash
+# Database Configuration
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/startup_health_check
+
+# SMTP Configuration (for email notifications)
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587
+SMTP_USER=your-smtp-username
+SMTP_PASSWORD=your-smtp-password
+SMTP_FROM_EMAIL=noreply@example.com
+
+# AWS SES Configuration (alternative to SMTP)
+AWS_ACCESS_KEY_ID=your-aws-access-key-id
+AWS_SECRET_ACCESS_KEY=your-aws-secret-access-key
+AWS_REGION=us-east-1
+SES_FROM_EMAIL=noreply@example.com
+```
+
+### Frontend `.env`
+
+```bash
+# Backend API URL
+VITE_API_URL=http://localhost:8000
+```
 
 ## API Endpoints
 
@@ -158,9 +311,53 @@ Startup_Health_Chec/
   - **High**: 40-59%
   - **Critical**: <40%
 
-## Database Note
+## Database
 
-This proof of concept uses an in-memory database. Data will be lost when the backend server restarts. For production use, integrate with PostgreSQL or another persistent database.
+The application supports both PostgreSQL and in-memory storage:
+
+- **PostgreSQL**: When `DATABASE_URL` environment variable is set, the application uses PostgreSQL with SQLAlchemy ORM for persistent storage.
+- **In-Memory**: If `DATABASE_URL` is not configured, the application falls back to in-memory storage. Data will be lost when the backend server restarts.
+
+For production use, always configure PostgreSQL for data persistence.
+
+## Docker Commands
+
+### Build and Start Services
+```bash
+docker-compose up -d
+```
+
+### View Logs
+```bash
+# All services
+docker-compose logs -f
+
+# Specific service
+docker-compose logs -f backend
+docker-compose logs -f frontend
+docker-compose logs -f postgres
+```
+
+### Stop Services
+```bash
+docker-compose down
+```
+
+### Rebuild Services
+```bash
+docker-compose up -d --build
+```
+
+### Access Database
+```bash
+docker-compose exec postgres psql -U postgres -d startup_health_check
+```
+
+### Reset Database
+```bash
+docker-compose down -v
+docker-compose up -d
+```
 
 ## Deployment
 
@@ -170,6 +367,8 @@ The backend can be deployed to Fly.io using the deploy command:
 # From project root
 deploy backend --dir backend
 ```
+
+Make sure to set the `DATABASE_URL` environment variable in your deployment environment to point to your production PostgreSQL instance.
 
 ### Frontend Deployment
 The frontend can be deployed as a static site:
@@ -183,6 +382,15 @@ deploy frontend --dir frontend/dist
 ```
 
 Make sure to update the `VITE_API_URL` in the frontend `.env` file to point to the deployed backend URL before building.
+
+### Docker Deployment
+For production deployment using Docker:
+
+1. Update environment variables in `.env` for production values
+2. Use production-ready Docker Compose configuration
+3. Consider using Docker Swarm or Kubernetes for orchestration
+4. Set up proper SSL/TLS certificates
+5. Configure proper backup strategy for PostgreSQL data
 
 ## Future Enhancements
 
