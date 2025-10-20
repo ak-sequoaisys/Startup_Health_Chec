@@ -8,6 +8,7 @@ from app.models import Question, AssessmentSubmission, AssessmentResult, Lead, S
 from app.questions_data import get_all_questions, get_question_by_id
 from app.assessment_service import calculate_assessment_result, create_lead_from_submission
 from app.database import db
+from app.validators import email_validator
 
 app = FastAPI(title="Startup Compliance Health Check API")
 
@@ -72,6 +73,10 @@ async def get_question(question_id: str):
 
 @app.post("/api/assessments", response_model=AssessmentResult)
 async def submit_assessment(submission: AssessmentSubmission):
+    is_valid, error_message = email_validator.validate_business_email(submission.email)
+    if not is_valid:
+        raise HTTPException(status_code=400, detail=error_message)
+    
     try:
         result = calculate_assessment_result(submission)
         
