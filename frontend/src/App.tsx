@@ -200,11 +200,11 @@ function App() {
   };
 
   const handleBookCall = () => {
-    window.open("https://calendly.com/offrd", "_blank");
+    window.open("https://outlook.office365.com/book/OffrdDemo@sequoiaat.com/", "_blank");
   };
 
   const handleExploreOffrd = () => {
-    window.open("https://offrd.com.au", "_blank");
+    window.open("https://www.offrd.co", "_blank");
   };
 
   const currentQuestion = questions[currentQuestionIndex];
@@ -258,6 +258,11 @@ function App() {
   if (step === "intro") {
     return (
       <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 flex items-center justify-center p-4">
+        <div className="absolute top-4 left-4">
+          <a href="https://www.offrd.co" target="_blank" rel="noopener noreferrer">
+            <img src="/offrd-logo.png" alt="Offrd" className="h-12 w-auto" />
+          </a>
+        </div>
         <Card className="max-w-2xl w-full">
           <CardHeader className="text-center">
             <CardTitle className="text-3xl font-bold text-foreground">
@@ -324,6 +329,11 @@ function App() {
 
     return (
       <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 flex items-center justify-center p-4">
+        <div className="absolute top-4 left-4">
+          <a href="https://www.offrd.co" target="_blank" rel="noopener noreferrer">
+            <img src="/offrd-logo.png" alt="Offrd" className="h-12 w-auto" />
+          </a>
+        </div>
         <Card className="max-w-2xl w-full">
           <CardHeader>
             <CardTitle className="text-2xl">Start Your Compliance Assessment</CardTitle>
@@ -484,6 +494,11 @@ function App() {
   if (step === "assessment" && currentQuestion) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 p-4 py-8">
+        <div className="absolute top-4 left-4">
+          <a href="https://www.offrd.co" target="_blank" rel="noopener noreferrer">
+            <img src="/offrd-logo.png" alt="Offrd" className="h-12 w-auto" />
+          </a>
+        </div>
         <div className="max-w-3xl mx-auto">
           <div className="mb-6">
             <div className="flex justify-between items-center mb-2">
@@ -601,6 +616,11 @@ function App() {
     
     return (
       <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 p-4 py-8">
+        <div className="absolute top-4 left-4">
+          <a href="https://www.offrd.co" target="_blank" rel="noopener noreferrer">
+            <img src="/offrd-logo.png" alt="Offrd" className="h-12 w-auto" />
+          </a>
+        </div>
         <div className="max-w-5xl mx-auto space-y-6">
           <Card>
             <CardHeader className="text-center pb-4">
@@ -659,7 +679,7 @@ function App() {
                   size="lg"
                 >
                   <Calendar className="w-6 h-6" />
-                  <span className="font-semibold">Book a Call</span>
+                  <span className="font-semibold">Book a Demo</span>
                 </Button>
                 <Button
                   onClick={handleExploreOffrd}
@@ -779,7 +799,7 @@ function App() {
                     size="lg"
                   >
                     <Calendar className="w-5 h-5" />
-                    Schedule a Free Consultation
+                    Book a Demo
                   </Button>
                   <Button 
                     onClick={handleExploreOffrd}

@@ -5,6 +5,7 @@ from typing import List, Optional
 from datetime import datetime
 import hashlib
 import uuid
+from contextlib import asynccontextmanager
 from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
@@ -17,12 +18,24 @@ from app.email_service import email_service
 from app.admin_models import TrialRecord, TrialFilters
 from app.admin_service import get_trials, export_trials_csv
 from app.auth import get_current_user
+from app.scheduler import digest_scheduler
 from app.middleware import SecurityHeadersMiddleware
 from app.security import sanitize_dict, verify_turnstile_token, verify_recaptcha_token
 from pydantic import BaseModel
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    digest_scheduler.start()
+    yield
+    digest_scheduler.shutdown()
+
+
 limiter = Limiter(key_func=get_remote_address)
-app = FastAPI(title="Startup Compliance Health Check API")
+app = FastAPI(
+    title="Startup Compliance Health Check API",
+    lifespan=lifespan
+)
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
@@ -336,6 +349,19 @@ async def export_admin_trials(
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error exporting trials: {str(e)}")
+
+
+@app.post("/api/v1/admin/digest/trigger")
+async def trigger_digest(current_user: dict = Depends(get_current_user)):
+    """
+    Manually trigger the weekly digest email.
+    This endpoint is protected and requires authentication.
+    """
+    try:
+        digest_scheduler.trigger_now()
+        return {"status": "success", "message": "Weekly digest triggered successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error triggering digest: {str(e)}")
 
 
 class DeleteDataRequest(BaseModel):
