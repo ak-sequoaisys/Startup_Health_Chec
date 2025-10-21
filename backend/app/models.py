@@ -1,7 +1,8 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, field_validator
 from typing import List, Optional, Dict
 from datetime import datetime
 from enum import Enum
+from .email_validator import validate_business_email
 
 
 class QuestionType(str, Enum):
@@ -95,6 +96,11 @@ class AssessmentSubmission(BaseModel):
     company_size: str
     industry: Optional[str] = None
     answers: List[Answer]
+    
+    @field_validator('email')
+    @classmethod
+    def validate_email_domain(cls, v: str) -> str:
+        return validate_business_email(v)
 
 
 class CategoryScore(BaseModel):
@@ -136,6 +142,11 @@ class StartAssessmentRequest(BaseModel):
     operating_states: List[str]
     business_age: Optional[str] = None
     consent: bool
+    
+    @field_validator('email')
+    @classmethod
+    def validate_email_domain(cls, v: str) -> str:
+        return validate_business_email(v)
 
 
 class Lead(BaseModel):

@@ -14,6 +14,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CheckCircle2, AlertTriangle, XCircle, Info, Download, Calendar, ExternalLink, Share2 } from "lucide-react";
 import { initializeGTM, trackStartAssessment, trackAnswerQuestion, trackViewResults, trackReportDownload } from "./analytics";
+import { validateBusinessEmail } from "./emailValidator";
 
 type Step = "intro" | "contact" | "assessment" | "results";
 
@@ -44,6 +45,7 @@ function App() {
   const [result, setResult] = useState<AssessmentResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [emailError, setEmailError] = useState<string | null>(null);
 
   useEffect(() => {
     initializeGTM();
@@ -65,6 +67,13 @@ function App() {
 
   const handleContactSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    const emailValidationError = validateBusinessEmail(contactInfo.email);
+    if (emailValidationError) {
+      setEmailError(emailValidationError);
+      return;
+    }
+    
     if (
       contactInfo.email &&
       contactInfo.company_name &&
@@ -74,6 +83,7 @@ function App() {
     ) {
       setLoading(true);
       setError(null);
+      setEmailError(null);
       try {
         await startAssessment(contactInfo);
         trackStartAssessment({
@@ -82,8 +92,12 @@ function App() {
           employee_range: contactInfo.employee_range,
         });
         setStep("assessment");
-      } catch {
-        setError("Failed to start assessment. Please try again.");
+      } catch (err: any) {
+        if (err?.response?.data?.detail && typeof err.response.data.detail === 'string' && err.response.data.detail.includes('email')) {
+          setEmailError(err.response.data.detail);
+        } else {
+          setError("Failed to start assessment. Please try again.");
+        }
       } finally {
         setLoading(false);
       }
@@ -349,11 +363,16 @@ function App() {
                   id="email"
                   type="email"
                   value={contactInfo.email}
-                  onChange={(e) =>
-                    setContactInfo({ ...contactInfo, email: e.target.value })
-                  }
+                  onChange={(e) => {
+                    setContactInfo({ ...contactInfo, email: e.target.value });
+                    setEmailError(null);
+                  }}
                   required
+                  className={emailError ? "border-destructive" : ""}
                 />
+                {emailError && (
+                  <p className="text-sm text-destructive">{emailError}</p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="company_name">Company Name *</Label>
