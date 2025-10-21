@@ -1,0 +1,170 @@
+name: PR Preview Deployment
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches:
+      - devin/1760895937-compliance-health-check-tool
+      - main
+  pull_request_review:
+    types: [submitted]
+
+permissions:
+  contents: read
+  pull-requests: write
+  id-token: write
+
+env:
+  AWS_REGION: us-east-1
+  ECR_BACKEND_REPOSITORY: startup-health-check-backend-preview
+  ECR_FRONTEND_REPOSITORY: startup-health-check-frontend-preview
+
+jobs:
+  deploy-preview:
+    name: Deploy Preview Environment
+    runs-on: ubuntu-latest
+    if: github.event.action != 'closed'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Create ECR repositories if they don't exist
+        run: |
+          aws ecr describe-repositories --repository-names ${{ env.ECR_BACKEND_REPOSITORY }} --region ${{ env.AWS_REGION }} 2>/dev/null || \
+            aws ecr create-repository --repository-name ${{ env.ECR_BACKEND_REPOSITORY }} --region ${{ env.AWS_REGION }}
+          
+          aws ecr describe-repositories --repository-names ${{ env.ECR_FRONTEND_REPOSITORY }} --region ${{ env.AWS_REGION }} 2>/dev/null || \
+            aws ecr create-repository --repository-name ${{ env.ECR_FRONTEND_REPOSITORY }} --region ${{ env.AWS_REGION }}
+
+      - name: Build and push backend image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: pr-${{ github.event.pull_request.number }}
+        run: |
+          cd backend
+          docker build -f Dockerfile.prod -t $ECR_REGISTRY/${{ env.ECR_BACKEND_REPOSITORY }}:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/${{ env.ECR_BACKEND_REPOSITORY }}:$IMAGE_TAG
+
+      - name: Build and push frontend image
+        env:
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: pr-${{ github.event.pull_request.number }}
+          VITE_API_URL: https://pr-${{ github.event.pull_request.number }}-api.deploymirror.com
+        run: |
+          cd frontend
+          docker build -f Dockerfile.prod --build-arg VITE_API_URL=$VITE_API_URL -t $ECR_REGISTRY/${{ env.ECR_FRONTEND_REPOSITORY }}:$IMAGE_TAG .
+          docker push $ECR_REGISTRY/${{ env.ECR_FRONTEND_REPOSITORY }}:$IMAGE_TAG
+
+      - name: Deploy to ECS
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          ECR_REGISTRY: ${{ steps.login-ecr.outputs.registry }}
+          IMAGE_TAG: pr-${{ github.event.pull_request.number }}
+        run: |
+          # Deploy using the preview deployment script
+          cd aws
+          chmod +x deploy-preview.sh
+          ./deploy-preview.sh $PR_NUMBER
+
+      - name: Get deployment URL
+        id: get-url
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          STACK_NAME="startup-health-check-pr-$PR_NUMBER"
+          ALB_DNS=$(aws cloudformation describe-stacks \
+            --stack-name $STACK_NAME \
+            --region ${{ env.AWS_REGION }} \
+            --query "Stacks[0].Outputs[?OutputKey=='LoadBalancerDNS'].OutputValue" \
+            --output text 2>/dev/null || echo "")
+          
+          if [ -z "$ALB_DNS" ]; then
+            echo "url=http://pr-$PR_NUMBER.deploymirror.com" >> $GITHUB_OUTPUT
+          else
+            echo "url=http://$ALB_DNS" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Comment on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prNumber = context.payload.pull_request.number;
+            const deploymentUrl = '${{ steps.get-url.outputs.url }}';
+            const apiUrl = deploymentUrl.replace('://', '://api.');
+            
+            const comment = `## 🚀 Preview Deployment Ready!
+            
+            Your preview environment has been deployed successfully.
+            
+            **Frontend:** ${deploymentUrl}
+            **Backend API:** ${apiUrl}
+            **Health Check:** ${apiUrl}/healthz
+            
+            ### Testing the Preview
+            
+            1. Visit the frontend URL to test the application
+            2. Complete a full assessment flow
+            3. Check the backend API health endpoint
+            
+            ### Notes
+            
+            - This preview environment will be automatically updated when you push new commits
+            - The environment will be destroyed when the PR is closed or merged
+            - Preview environments share a common database (data may be visible across PRs)
+            
+            ---
+            
+            *Deployment triggered by commit ${context.sha.substring(0, 7)}*`;
+            
+            // Find existing comment
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+            });
+            
+            const botComment = comments.find(comment => 
+              comment.user.type === 'Bot' && 
+              comment.body.includes('Preview Deployment Ready')
+            );
+            
+            if (botComment) {
+              // Update existing comment
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: comment
+              });
+            } else {
+              // Create new comment
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                body: comment
+              });
+            }
+
+      - name: Update deployment status
+        if: always()
+        run: |
+          if [ "${{ job.status }}" == "success" ]; then
+            echo "✅ Preview deployment successful"
+          else
+            echo "❌ Preview deployment failed"
+          fi
