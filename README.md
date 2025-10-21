@@ -361,17 +361,81 @@ docker-compose up -d
 
 ## Deployment
 
-### Backend Deployment
-The backend can be deployed to Fly.io using the deploy command:
+### Production Deployment with Docker Compose
+
+The application includes production-ready Docker configurations for easy deployment.
+
+#### Prerequisites
+- Docker and Docker Compose installed on your server
+- Access to your deployment server (e.g., AWS EC2, DigitalOcean, etc.)
+
+#### Deployment Steps
+
+1. **Clone the repository on your server:**
+   ```bash
+   git clone <repository-url>
+   cd Startup_Health_Chec
+   ```
+
+2. **Configure production environment:**
+   ```bash
+   cp .env.prod .env.production
+   ```
+   
+   Edit `.env.production` and update:
+   - Database credentials (if using external PostgreSQL)
+   - SMTP/SES settings for email notifications
+   - Any other production-specific settings
+
+3. **Deploy using the deployment script:**
+   ```bash
+   chmod +x deploy.sh
+   ./deploy.sh production
+   ```
+
+   Or manually:
+   ```bash
+   docker-compose -f docker-compose.prod.yml --env-file .env.production build
+   docker-compose -f docker-compose.prod.yml --env-file .env.production up -d
+   ```
+
+4. **Verify deployment:**
+   ```bash
+   docker-compose -f docker-compose.prod.yml ps
+   docker-compose -f docker-compose.prod.yml logs -f
+   ```
+
+5. **Access the application:**
+   - The application will be available on port 80
+   - Frontend: `http://your-server-ip/`
+   - Backend API: `http://your-server-ip/api/`
+
+#### Production Configuration Files
+
+- `backend/Dockerfile.prod` - Production backend Dockerfile
+- `frontend/Dockerfile.prod` - Production frontend Dockerfile with nginx
+- `docker-compose.prod.yml` - Production Docker Compose configuration
+- `frontend/nginx.conf` - Nginx reverse proxy configuration
+- `.env.prod` - Production environment template
+
+#### Key Differences from Development
+
+- Frontend is built and served via nginx (not Vite dev server)
+- Backend runs with `fastapi run` (production mode)
+- All services communicate via internal Docker network
+- Frontend proxies API requests to backend via nginx
+
+### Alternative Deployment Options
+
+#### Backend Deployment to Fly.io
 ```bash
 # From project root
 deploy backend --dir backend
 ```
 
-Make sure to set the `DATABASE_URL` environment variable in your deployment environment to point to your production PostgreSQL instance.
+Make sure to set the `DATABASE_URL` environment variable in your deployment environment.
 
-### Frontend Deployment
-The frontend can be deployed as a static site:
+#### Frontend Deployment as Static Site
 ```bash
 # Build the frontend
 cd frontend
@@ -381,16 +445,18 @@ npm run build
 deploy frontend --dir frontend/dist
 ```
 
-Make sure to update the `VITE_API_URL` in the frontend `.env` file to point to the deployed backend URL before building.
+Make sure to update the `VITE_API_URL` before building.
 
-### Docker Deployment
-For production deployment using Docker:
+### Production Checklist
 
-1. Update environment variables in `.env` for production values
-2. Use production-ready Docker Compose configuration
-3. Consider using Docker Swarm or Kubernetes for orchestration
-4. Set up proper SSL/TLS certificates
-5. Configure proper backup strategy for PostgreSQL data
+- [ ] Update database credentials in `.env.production`
+- [ ] Configure SMTP/SES for email notifications
+- [ ] Set up SSL/TLS certificates (use nginx or reverse proxy)
+- [ ] Configure firewall rules (allow ports 80, 443)
+- [ ] Set up database backups
+- [ ] Configure monitoring and logging
+- [ ] Set up domain name and DNS
+- [ ] Test the deployment thoroughly
 
 ## Future Enhancements
 
