@@ -2,9 +2,10 @@ import os
 import time
 import uuid
 from datetime import datetime
-from typing import Optional
+from typing import Optional, Dict
 import boto3
 from botocore.exceptions import ClientError
+from jinja2 import Environment, FileSystemLoader
 from app.models import AssessmentResult, AuditLog, EmailStatus
 from app.database import db
 
@@ -17,6 +18,9 @@ class EmailService:
         self.sender_email = os.getenv("SENDER_EMAIL", "noreply@offrd.co")
         self.aws_region = os.getenv("AWS_REGION", "us-east-1")
         self.max_retries = 3
+        
+        templates_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'templates')
+        self.jinja_env = Environment(loader=FileSystemLoader(templates_dir))
         
         aws_access_key = os.getenv("AWS_ACCESS_KEY_ID")
         aws_secret_key = os.getenv("AWS_SECRET_ACCESS_KEY")
@@ -138,6 +142,90 @@ Category Breakdown:
         db.save_audit_log(audit_log)
         
         return audit_log
+    
+    def _render_digest_template(self, stats: Dict) -> str:
+        """
+        Render the digest email template with statistics data.
+        """
+        template = self.jinja_env.get_template('digest.html')
+        
+        period_start = stats['period_start'].strftime('%Y-%m-%d')
+        period_end = stats['period_end'].strftime('%Y-%m-%d')
+        avg_score = f"{stats['avg_score']:.1f}"
+        
+        return template.render(
+            total_assessments=stats['total_assessments'],
+            avg_score=avg_score,
+            top_5_states=stats['top_5_states'],
+            period_start=period_start,
+            period_end=period_end
+        )
+    
+    def _send_html_via_ses(self, subject: str, html_body: str) -> tuple[bool, Optional[str]]:
+        """
+        Send HTML email via AWS SES.
+        """
+        if not self.ses_client:
+            return False, "SES client not configured"
+        
+        try:
+            response = self.ses_client.send_email(
+                Source=self.sender_email,
+                Destination={
+                    'ToAddresses': [self.recipient_email]
+                },
+                Message={
+                    'Subject': {
+                        'Data': subject,
+                        'Charset': 'UTF-8'
+                    },
+                    'Body': {
+                        'Html': {
+                            'Data': html_body,
+                            'Charset': 'UTF-8'
+                        }
+                    }
+                }
+            )
+            return True, None
+        except ClientError as e:
+            error_message = e.response['Error']['Message']
+            return False, f"SES Error: {error_message}"
+        except Exception as e:
+            return False, f"Unexpected error: {str(e)}"
+    
+    def send_weekly_digest(self, stats: Dict) -> tuple[bool, Optional[str]]:
+        """
+        Send the weekly digest email with statistics.
+        
+        Args:
+            stats: Dictionary containing total_assessments, avg_score, top_5_states,
+                   period_start, and period_end
+        
+        Returns:
+            Tuple of (success: bool, error_message: Optional[str])
+        """
+        subject = f"Weekly Compliance Digest - {stats['total_assessments']} Assessments"
+        
+        try:
+            html_body = self._render_digest_template(stats)
+        except Exception as e:
+            return False, f"Template rendering error: {str(e)}"
+        
+        success = False
+        last_error = None
+        
+        for attempt in range(1, self.max_retries + 1):
+            success, error = self._send_html_via_ses(subject, html_body)
+            
+            if success:
+                break
+            else:
+                last_error = error
+                if attempt < self.max_retries:
+                    time.sleep(2 ** attempt)
+        
+        return success, last_error
 
 
 email_service = EmailService()

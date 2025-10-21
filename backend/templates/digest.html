@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weekly Compliance Health Check Digest</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f4f4f4;
+        }
+        .container {
+            background-color: #ffffff;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            border-bottom: 3px solid #4CAF50;
+            padding-bottom: 20px;
+            margin-bottom: 30px;
+        }
+        .header h1 {
+            color: #4CAF50;
+            margin: 0;
+            font-size: 24px;
+        }
+        .header p {
+            color: #666;
+            margin: 10px 0 0 0;
+            font-size: 14px;
+        }
+        .stat-card {
+            background-color: #f9f9f9;
+            border-left: 4px solid #4CAF50;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+        .stat-card h2 {
+            margin: 0 0 10px 0;
+            font-size: 18px;
+            color: #333;
+        }
+        .stat-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #4CAF50;
+            margin: 10px 0;
+        }
+        .stat-label {
+            font-size: 14px;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .states-list {
+            list-style: none;
+            padding: 0;
+            margin: 15px 0 0 0;
+        }
+        .states-list li {
+            padding: 10px;
+            margin-bottom: 8px;
+            background-color: #fff;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        .state-name {
+            font-weight: 600;
+            color: #333;
+        }
+        .state-count {
+            background-color: #4CAF50;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #ddd;
+            font-size: 12px;
+            color: #999;
+        }
+        .period {
+            background-color: #e8f5e9;
+            padding: 10px;
+            border-radius: 4px;
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 14px;
+            color: #2e7d32;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Weekly Compliance Health Check Digest</h1>
+            <p>Your weekly summary of startup compliance assessments</p>
+        </div>
+
+        <div class="period">
+            <strong>Period:</strong> {{ period_start }} to {{ period_end }}
+        </div>
+
+        <div class="stat-card">
+            <h2>Total Assessments</h2>
+            <div class="stat-value">{{ total_assessments }}</div>
+            <div class="stat-label">Completed This Week</div>
+        </div>
+
+        <div class="stat-card">
+            <h2>Average Compliance Score</h2>
+            <div class="stat-value">{{ avg_score }}%</div>
+            <div class="stat-label">Across All Assessments</div>
+        </div>
+
+        <div class="stat-card">
+            <h2>Top 5 Operating States</h2>
+            <div class="stat-label">By Number of Assessments</div>
+            {% if top_5_states %}
+            <ul class="states-list">
+                {% for state, count in top_5_states %}
+                <li>
+                    <span class="state-name">{{ state }}</span>
+                    <span class="state-count">{{ count }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p style="margin-top: 15px; color: #666;">No state data available for this period.</p>
+            {% endif %}
+        </div>
+
+        <div class="footer">
+            <p>This is an automated weekly digest sent every Monday at 09:00 IST</p>
+            <p>&copy; 2024 Startup Compliance Health Check Tool</p>
+        </div>
+    </div>
+</body>
+</html>

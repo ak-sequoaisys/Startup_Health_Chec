@@ -5,6 +5,7 @@ from typing import List, Optional
 from datetime import datetime
 import hashlib
 import uuid
+from contextlib import asynccontextmanager
 from app.models import Question, AssessmentSubmission, AssessmentResult, Lead, StartAssessmentRequest, LeadStatus, AnswerRequest, InProgressAssessment, Answer, AuditLog
 from app.questions_data import get_all_questions, get_question_by_id
 from app.assessment_service import calculate_assessment_result, create_lead_from_submission
@@ -14,8 +15,20 @@ from app.email_service import email_service
 from app.admin_models import TrialRecord, TrialFilters
 from app.admin_service import get_trials, export_trials_csv
 from app.auth import get_current_user
+from app.scheduler import digest_scheduler
 
-app = FastAPI(title="Startup Compliance Health Check API")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    digest_scheduler.start()
+    yield
+    digest_scheduler.shutdown()
+
+
+app = FastAPI(
+    title="Startup Compliance Health Check API",
+    lifespan=lifespan
+)
 
 app.add_middleware(
     CORSMiddleware,
@@ -298,3 +311,16 @@ async def export_admin_trials(
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error exporting trials: {str(e)}")
+
+
+@app.post("/api/v1/admin/digest/trigger")
+async def trigger_digest(current_user: dict = Depends(get_current_user)):
+    """
+    Manually trigger the weekly digest email.
+    This endpoint is protected and requires authentication.
+    """
+    try:
+        digest_scheduler.trigger_now()
+        return {"status": "success", "message": "Weekly digest triggered successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error triggering digest: {str(e)}")
