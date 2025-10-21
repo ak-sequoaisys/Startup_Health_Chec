@@ -10,7 +10,13 @@ from app.models import Question, AssessmentSubmission, AssessmentResult, Lead, S
 from app.questions_data import get_all_questions, get_question_by_id
 from app.assessment_service import calculate_assessment_result, create_lead_from_submission
 from app.database import db
-from app.pdf_service import generate_pdf_report
+try:
+    from app.pdf_service import generate_pdf_report
+    PDF_SERVICE_AVAILABLE = True
+except ImportError as e:
+    print(f"Warning: PDF service not available: {e}")
+    PDF_SERVICE_AVAILABLE = False
+    generate_pdf_report = None
 from app.email_service import email_service
 from app.admin_models import TrialRecord, TrialFilters
 from app.admin_service import get_trials, export_trials_csv
@@ -219,6 +225,9 @@ async def get_lead(lead_id: str):
 @app.post("/api/v1/reports/generate")
 async def generate_report(assessment_id: str):
     try:
+        if not PDF_SERVICE_AVAILABLE:
+            raise HTTPException(status_code=503, detail="PDF generation service is not available")
+        
         assessment = db.get_assessment(assessment_id)
         if not assessment:
             raise HTTPException(status_code=404, detail="Assessment not found")
