@@ -75,32 +75,35 @@ function App() {
     }
     
     if (
-      contactInfo.email &&
-      contactInfo.company_name &&
-      contactInfo.employee_range &&
-      contactInfo.operating_states.length > 0 &&
-      contactInfo.consent
+      !contactInfo.email ||
+      !contactInfo.company_name ||
+      !contactInfo.employee_range ||
+      contactInfo.operating_states.length === 0 ||
+      !contactInfo.consent
     ) {
-      setLoading(true);
-      setError(null);
-      setEmailError(null);
-      try {
-        await startAssessment(contactInfo);
-        trackStartAssessment({
-          company_name: contactInfo.company_name,
-          industry: contactInfo.industry,
-          employee_range: contactInfo.employee_range,
-        });
-        setStep("assessment");
-      } catch (err: any) {
-        if (err?.response?.data?.detail && typeof err.response.data.detail === 'string' && err.response.data.detail.includes('email')) {
-          setEmailError(err.response.data.detail);
-        } else {
-          setError("Failed to start assessment. Please try again.");
-        }
-      } finally {
-        setLoading(false);
+      setError("Please fill in all required fields and accept the consent.");
+      return;
+    }
+    
+    setLoading(true);
+    setError(null);
+    setEmailError(null);
+    try {
+      await startAssessment(contactInfo);
+      trackStartAssessment({
+        company_name: contactInfo.company_name,
+        industry: contactInfo.industry,
+        employee_range: contactInfo.employee_range,
+      });
+      setStep("assessment");
+    } catch (err: any) {
+      if (err?.response?.data?.detail && typeof err.response.data.detail === 'string' && err.response.data.detail.includes('email')) {
+        setEmailError(err.response.data.detail);
+      } else {
+        setError("Failed to start assessment. Please try again.");
       }
+    } finally {
+      setLoading(false);
     }
   };
 
