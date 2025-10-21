@@ -361,36 +361,42 @@ docker-compose up -d
 
 ## Deployment
 
-### Backend Deployment
-The backend can be deployed to Fly.io using the deploy command:
+For comprehensive deployment instructions, see [DEPLOYMENT.md](./DEPLOYMENT.md).
+
+### Quick Start - AWS Deployment
+
+The application is designed to be deployed on AWS using ECS Fargate with the following architecture:
+
+- **ECS Fargate**: Container orchestration for backend and frontend
+- **Application Load Balancer**: Traffic distribution and SSL termination
+- **RDS PostgreSQL**: Managed database service
+- **CloudWatch**: Structured logging and monitoring
+- **AWS SES**: Email notifications with DKIM/SPF
+- **Secrets Manager**: Secure credential storage
+
+**Deploy to AWS**:
 ```bash
-# From project root
-deploy backend --dir backend
+cd aws
+export DATABASE_PASSWORD="your-secure-password"
+export NOTIFICATION_EMAIL="service@offrd.co"
+export SENDER_EMAIL="noreply@offrd.co"
+./deploy.sh
 ```
 
-Make sure to set the `DATABASE_URL` environment variable in your deployment environment to point to your production PostgreSQL instance.
-
-### Frontend Deployment
-The frontend can be deployed as a static site:
+**Set up monitoring**:
 ```bash
-# Build the frontend
-cd frontend
-npm run build
-
-# Deploy the dist folder
-deploy frontend --dir frontend/dist
+./setup-monitoring.sh
 ```
 
-Make sure to update the `VITE_API_URL` in the frontend `.env` file to point to the deployed backend URL before building.
-
-### Docker Deployment
-For production deployment using Docker:
-
-1. Update environment variables in `.env` for production values
-2. Use production-ready Docker Compose configuration
-3. Consider using Docker Swarm or Kubernetes for orchestration
-4. Set up proper SSL/TLS certificates
-5. Configure proper backup strategy for PostgreSQL data
+See [DEPLOYMENT.md](./DEPLOYMENT.md) for detailed instructions including:
+- Infrastructure setup
+- SSL/TLS configuration
+- Email configuration (SES with DKIM/SPF)
+- Monitoring and alerting
+- Uptime monitoring (Pingdom)
+- Troubleshooting guide
+- Cost optimization
+- Security best practices
 
 ## Future Enhancements
 
