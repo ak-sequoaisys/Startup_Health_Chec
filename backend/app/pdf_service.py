@@ -1,4 +1,12 @@
-from weasyprint import HTML, CSS
+try:
+    from weasyprint import HTML, CSS
+    WEASYPRINT_AVAILABLE = True
+except Exception as e:
+    print(f"Warning: WeasyPrint not available: {e}")
+    WEASYPRINT_AVAILABLE = False
+    HTML = None
+    CSS = None
+
 from typing import Optional
 import os
 from datetime import datetime
@@ -515,6 +523,9 @@ def generate_html_report(result: AssessmentResult) -> str:
 
 
 def generate_pdf_report(result: AssessmentResult, output_path: Optional[str] = None) -> str:
+    if not WEASYPRINT_AVAILABLE:
+        raise RuntimeError("PDF generation is not available - WeasyPrint dependencies are missing")
+    
     if output_path is None:
         os.makedirs("/tmp/compliance_reports", exist_ok=True)
         output_path = f"/tmp/compliance_reports/report_{result.id}.pdf"
