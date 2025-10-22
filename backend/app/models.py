@@ -56,6 +56,10 @@ class GovernmentSource(BaseModel):
     description: Optional[str] = None
 
 
+class ConditionalRule(BaseModel):
+    depends_on_question: str
+    depends_on_answer: str
+
 class Question(BaseModel):
     id: str
     category: ComplianceCategory
@@ -66,6 +70,8 @@ class Question(BaseModel):
     weight: int = 1
     applicability_rules: Optional[List[ApplicabilityRule]] = None
     government_sources: Optional[List[GovernmentSource]] = None
+    conditional_rule: Optional[ConditionalRule] = None
+    is_informational: bool = False
 
 
 class Answer(BaseModel):
