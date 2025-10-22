@@ -363,6 +363,25 @@ docker-compose up -d
 
 For comprehensive deployment instructions, see [DEPLOYMENT.md](./DEPLOYMENT.md).
 
+### PR Preview Deployments
+
+Every pull request automatically gets its own preview environment deployed to AWS! This allows you to test changes before merging.
+
+**How it works:**
+- Open a PR → Preview environment automatically deploys
+- Push commits → Preview updates automatically
+- Close PR → Resources cleaned up automatically
+
+**Preview URLs:**
+- Frontend: `http://pr-{number}.deploymirror.com`
+- Backend API: `http://pr-{number}-api.deploymirror.com`
+
+See [PREVIEW_DEPLOYMENTS.md](./PREVIEW_DEPLOYMENTS.md) for detailed information about:
+- How preview deployments work
+- Setup requirements
+- Monitoring and troubleshooting
+- Cost optimization
+
 ### Quick Start - AWS Deployment
 
 The application is designed to be deployed on AWS using ECS Fargate with the following architecture:

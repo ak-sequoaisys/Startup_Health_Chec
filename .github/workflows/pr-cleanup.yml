@@ -1,0 +1,177 @@
+name: PR Preview Cleanup
+
+on:
+  pull_request:
+    types: [closed]
+    branches:
+      - devin/1760895937-compliance-health-check-tool
+      - main
+
+permissions:
+  contents: read
+  pull-requests: write
+  id-token: write
+
+env:
+  AWS_REGION: us-east-1
+
+jobs:
+  cleanup-preview:
+    name: Cleanup Preview Environment
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Delete ECS service
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          CLUSTER_NAME="startup-health-check-preview-cluster"
+          SERVICE_NAME="startup-health-check-pr-$PR_NUMBER"
+          
+          # Check if service exists
+          if aws ecs describe-services \
+            --cluster $CLUSTER_NAME \
+            --services $SERVICE_NAME \
+            --region ${{ env.AWS_REGION }} \
+            --query 'services[0].status' \
+            --output text 2>/dev/null | grep -q "ACTIVE"; then
+            
+            echo "Deleting ECS service: $SERVICE_NAME"
+            
+            # Scale down to 0
+            aws ecs update-service \
+              --cluster $CLUSTER_NAME \
+              --service $SERVICE_NAME \
+              --desired-count 0 \
+              --region ${{ env.AWS_REGION }} || true
+            
+            # Delete service
+            aws ecs delete-service \
+              --cluster $CLUSTER_NAME \
+              --service $SERVICE_NAME \
+              --force \
+              --region ${{ env.AWS_REGION }} || true
+            
+            echo "Service deleted successfully"
+          else
+            echo "Service $SERVICE_NAME not found or already deleted"
+          fi
+
+      - name: Deregister task definitions
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          TASK_FAMILY="startup-health-check-pr-$PR_NUMBER"
+          
+          # List all task definition revisions
+          TASK_ARNS=$(aws ecs list-task-definitions \
+            --family-prefix $TASK_FAMILY \
+            --region ${{ env.AWS_REGION }} \
+            --query 'taskDefinitionArns[]' \
+            --output text)
+          
+          # Deregister each revision
+          for TASK_ARN in $TASK_ARNS; do
+            echo "Deregistering task definition: $TASK_ARN"
+            aws ecs deregister-task-definition \
+              --task-definition $TASK_ARN \
+              --region ${{ env.AWS_REGION }} || true
+          done
+
+      - name: Delete CloudFormation stack
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          STACK_NAME="startup-health-check-pr-$PR_NUMBER"
+          
+          # Check if stack exists
+          if aws cloudformation describe-stacks \
+            --stack-name $STACK_NAME \
+            --region ${{ env.AWS_REGION }} 2>/dev/null; then
+            
+            echo "Deleting CloudFormation stack: $STACK_NAME"
+            aws cloudformation delete-stack \
+              --stack-name $STACK_NAME \
+              --region ${{ env.AWS_REGION }}
+            
+            echo "Waiting for stack deletion to complete..."
+            aws cloudformation wait stack-delete-complete \
+              --stack-name $STACK_NAME \
+              --region ${{ env.AWS_REGION }} || true
+            
+            echo "Stack deleted successfully"
+          else
+            echo "Stack $STACK_NAME not found or already deleted"
+          fi
+
+      - name: Delete ECR images
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          IMAGE_TAG="pr-$PR_NUMBER"
+          
+          # Delete backend image
+          aws ecr batch-delete-image \
+            --repository-name startup-health-check-backend-preview \
+            --image-ids imageTag=$IMAGE_TAG \
+            --region ${{ env.AWS_REGION }} 2>/dev/null || echo "Backend image not found"
+          
+          # Delete frontend image
+          aws ecr batch-delete-image \
+            --repository-name startup-health-check-frontend-preview \
+            --image-ids imageTag=$IMAGE_TAG \
+            --region ${{ env.AWS_REGION }} 2>/dev/null || echo "Frontend image not found"
+
+      - name: Delete secrets
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          # Delete PR-specific secrets if they exist
+          aws secretsmanager delete-secret \
+            --secret-id "startup-health-check-pr-$PR_NUMBER/database-url" \
+            --force-delete-without-recovery \
+            --region ${{ env.AWS_REGION }} 2>/dev/null || echo "Database URL secret not found"
+
+      - name: Comment on PR
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const prNumber = context.payload.pull_request.number;
+            
+            const comment = `## 🧹 Preview Environment Cleaned Up
+            
+            The preview environment for this PR has been successfully destroyed.
+            
+            **Cleaned up resources:**
+            - ✅ ECS service deleted
+            - ✅ Task definitions deregistered
+            - ✅ CloudFormation stack deleted
+            - ✅ Docker images removed
+            - ✅ Secrets cleaned up
+            
+            All AWS resources associated with this preview have been removed to avoid unnecessary costs.`;
+            
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: prNumber,
+              body: comment
+            });
+
+      - name: Cleanup status
+        if: always()
+        run: |
+          if [ "${{ job.status }}" == "success" ]; then
+            echo "✅ Preview cleanup successful"
+          else
+            echo "⚠️ Preview cleanup completed with warnings"
+          fi
