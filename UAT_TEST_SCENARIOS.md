@@ -116,7 +116,7 @@ This document outlines comprehensive UAT scenarios for the Startup Compliance He
 ## Scenario 4: Multi-State Manufacturing Company
 
 ### Company Profile
-- **Company Name**: Australian Manufacturing Co
+- **Company Name**: Indian Manufacturing Co
 - **Industry**: Manufacturing
 - **Employee Range**: 51-200 employees
 - **Operating States**: NSW, VIC, QLD, WA

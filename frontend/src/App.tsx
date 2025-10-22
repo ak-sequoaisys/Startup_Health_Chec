@@ -330,15 +330,43 @@ function App() {
   }
 
   if (step === "contact") {
-    const australianStates = [
-      { value: "NSW", label: "New South Wales" },
-      { value: "VIC", label: "Victoria" },
-      { value: "QLD", label: "Queensland" },
-      { value: "WA", label: "Western Australia" },
-      { value: "SA", label: "South Australia" },
-      { value: "TAS", label: "Tasmania" },
-      { value: "ACT", label: "Australian Capital Territory" },
-      { value: "NT", label: "Northern Territory" },
+    const indianStates = [
+      { value: "AN", label: "Andaman and Nicobar Islands" },
+      { value: "AP", label: "Andhra Pradesh" },
+      { value: "AR", label: "Arunachal Pradesh" },
+      { value: "AS", label: "Assam" },
+      { value: "BR", label: "Bihar" },
+      { value: "CH", label: "Chandigarh" },
+      { value: "CT", label: "Chhattisgarh" },
+      { value: "DN", label: "Dadra and Nagar Haveli and Daman and Diu" },
+      { value: "DL", label: "Delhi" },
+      { value: "GA", label: "Goa" },
+      { value: "GJ", label: "Gujarat" },
+      { value: "HR", label: "Haryana" },
+      { value: "HP", label: "Himachal Pradesh" },
+      { value: "JK", label: "Jammu and Kashmir" },
+      { value: "JH", label: "Jharkhand" },
+      { value: "KA", label: "Karnataka" },
+      { value: "KL", label: "Kerala" },
+      { value: "LA", label: "Ladakh" },
+      { value: "LD", label: "Lakshadweep" },
+      { value: "MP", label: "Madhya Pradesh" },
+      { value: "MH", label: "Maharashtra" },
+      { value: "MN", label: "Manipur" },
+      { value: "ML", label: "Meghalaya" },
+      { value: "MZ", label: "Mizoram" },
+      { value: "NL", label: "Nagaland" },
+      { value: "OR", label: "Odisha" },
+      { value: "PY", label: "Puducherry" },
+      { value: "PB", label: "Punjab" },
+      { value: "RJ", label: "Rajasthan" },
+      { value: "SK", label: "Sikkim" },
+      { value: "TN", label: "Tamil Nadu" },
+      { value: "TG", label: "Telangana" },
+      { value: "TR", label: "Tripura" },
+      { value: "UP", label: "Uttar Pradesh" },
+      { value: "UT", label: "Uttarakhand" },
+      { value: "WB", label: "West Bengal" },
     ];
 
     return (
@@ -419,7 +447,7 @@ function App() {
               <div className="space-y-2">
                 <Label>Operating States *</Label>
                 <div className="grid grid-cols-2 gap-3">
-                  {australianStates.map((state) => (
+                  {indianStates.map((state) => (
                     <div key={state.value} className="flex items-center space-x-2">
                       <Checkbox
                         id={state.value}
@@ -809,7 +837,7 @@ function App() {
                 <h3 className="text-2xl font-bold mb-3">Ready to Achieve Full Compliance?</h3>
                 <p className="text-foreground text-lg mb-6 max-w-2xl mx-auto">
                   Our compliance experts at Offrd can help you address these gaps and ensure
-                  your business meets all Australian HR and labour compliance requirements.
+                  your business meets all Indian HR and labour compliance requirements.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
                   <Button 
