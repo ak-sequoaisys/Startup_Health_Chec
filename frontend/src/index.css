@@ -11,22 +11,22 @@
     --foreground: 220 20% 15%;
     
     /* Primary Colors - Offrd Brand */
-    --primary: 210 45% 42%;
+    --primary: 199 100% 50%;
     --primary-foreground: 0 0% 100%;
-    --primary-50: 210 40% 98%;
-    --primary-100: 210 40% 96%;
-    --primary-200: 210 40% 90%;
-    --primary-300: 210 40% 80%;
-    --primary-400: 210 40% 65%;
-    --primary-500: 210 40% 50%;
-    --primary-600: 210 45% 42%;
-    --primary-700: 210 50% 35%;
-    --primary-800: 210 55% 28%;
-    --primary-900: 210 60% 20%;
-    --primary-950: 210 65% 12%;
+    --primary-50: 199 100% 98%;
+    --primary-100: 199 100% 95%;
+    --primary-200: 199 100% 90%;
+    --primary-300: 199 100% 80%;
+    --primary-400: 199 100% 65%;
+    --primary-500: 199 100% 50%;
+    --primary-600: 199 90% 45%;
+    --primary-700: 199 80% 40%;
+    --primary-800: 199 70% 35%;
+    --primary-900: 199 60% 30%;
+    --primary-950: 199 50% 20%;
     
     /* Secondary Colors */
-    --secondary: 200 30% 45%;
+    --secondary: 199 80% 55%;
     --secondary-foreground: 0 0% 100%;
     
     /* Muted */
@@ -34,8 +34,8 @@
     --muted-foreground: 220 15% 45%;
     
     /* Accent */
-    --accent: 210 40% 92%;
-    --accent-foreground: 210 50% 30%;
+    --accent: 199 100% 92%;
+    --accent-foreground: 199 80% 30%;
     
     /* Destructive */
     --destructive: 0 75% 48%;
@@ -44,7 +44,7 @@
     /* Border & Input */
     --border: 220 15% 85%;
     --input: 220 15% 85%;
-    --ring: 210 45% 42%;
+    --ring: 199 100% 50%;
     
     /* Success */
     --success: 142 50% 42%;
@@ -61,22 +61,22 @@
     /* Sidebar */
     --sidebar-background: 220 15% 98%;
     --sidebar-foreground: 220 20% 30%;
-    --sidebar-primary: 210 45% 42%;
+    --sidebar-primary: 199 100% 50%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 220 15% 95%;
     --sidebar-accent-foreground: 220 20% 30%;
     --sidebar-border: 220 15% 90%;
-    --sidebar-ring: 210 45% 42%;
+    --sidebar-ring: 199 100% 50%;
   }
   
   .dark {
     --background: 220 25% 10%;
     --foreground: 220 15% 95%;
     
-    --primary: 210 40% 50%;
+    --primary: 199 100% 55%;
     --primary-foreground: 220 25% 10%;
     
-    --secondary: 200 30% 45%;
+    --secondary: 199 80% 55%;
     --secondary-foreground: 0 0% 100%;
     
     --muted: 220 20% 20%;
@@ -90,7 +90,7 @@
     
     --border: 220 20% 20%;
     --input: 220 20% 20%;
-    --ring: 210 40% 50%;
+    --ring: 199 100% 55%;
     
     --success: 142 50% 42%;
     --success-foreground: 0 0% 100%;
@@ -103,12 +103,12 @@
     
     --sidebar-background: 220 25% 12%;
     --sidebar-foreground: 220 15% 90%;
-    --sidebar-primary: 210 40% 50%;
+    --sidebar-primary: 199 100% 55%;
     --sidebar-primary-foreground: 0 0% 100%;
     --sidebar-accent: 220 20% 18%;
     --sidebar-accent-foreground: 220 15% 90%;
     --sidebar-border: 220 20% 20%;
-    --sidebar-ring: 210 40% 50%;
+    --sidebar-ring: 199 100% 55%;
   }
 }
 
