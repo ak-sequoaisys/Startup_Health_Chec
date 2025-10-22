@@ -53,7 +53,7 @@ STATE_ANNEXURE = """
         <li><strong>Goods and Services Tax (GST)</strong>: Registration required if turnover exceeds ₹40 lakhs (₹20 lakhs for special category states). 
             <a href="https://www.gst.gov.in/">GST Portal</a></li>
         <li><strong>Prevention of Sexual Harassment (POSH)</strong>: Mandatory for all organizations with 10+ employees. 
-            <a href="https://wcd.nic.in/">Ministry of Women and Child Development</a></li>
+            <a href="https://wcd.gov.in/">Ministry of Women and Child Development</a></li>
     </ul>
     
     <h3>State-Specific Compliance</h3>

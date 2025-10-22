@@ -192,7 +192,7 @@ QUESTIONS = [
         government_sources=[
             GovernmentSource(
                 name="Ministry of Women and Child Development",
-                url="https://wcd.nic.in/",
+                url="https://wcd.gov.in/",
                 description="Information on POSH Act and compliance"
             )
         ]
