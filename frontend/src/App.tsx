@@ -61,6 +61,20 @@ function App() {
     }
   };
 
+  const getVisibleQuestions = () => {
+    return questions.filter((question) => {
+      if (!question.conditional_rule) {
+        return true;
+      }
+      
+      const dependentAnswer = answers.find(
+        (a) => a.question_id === question.conditional_rule.depends_on_question
+      );
+      
+      return dependentAnswer?.answer_value === question.conditional_rule.depends_on_answer;
+    });
+  };
+
   const handleStartAssessment = () => {
     setStep("contact");
   };
@@ -136,7 +150,8 @@ function App() {
   };
 
   const handleNext = () => {
-    if (currentQuestionIndex < questions.length - 1) {
+    const visibleQuestions = getVisibleQuestions();
+    if (currentQuestionIndex < visibleQuestions.length - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
     } else {
       handleSubmit();
@@ -224,9 +239,10 @@ function App() {
     window.open("https://www.offrd.co", "_blank");
   };
 
-  const currentQuestion = questions[currentQuestionIndex];
+  const visibleQuestions = getVisibleQuestions();
+  const currentQuestion = visibleQuestions[currentQuestionIndex];
   const currentAnswer = answers.find((a) => a.question_id === currentQuestion?.id);
-  const progress = ((currentQuestionIndex + 1) / questions.length) * 100;
+  const progress = visibleQuestions.length > 0 ? ((currentQuestionIndex + 1) / visibleQuestions.length) * 100 : 0;
 
   const getScoreColor = (percentage: number) => {
     if (percentage >= 71) return "text-success";
@@ -884,7 +900,7 @@ function App() {
           <div className="mb-6">
             <div className="flex justify-between items-center mb-2">
               <span className="text-sm font-medium text-foreground">
-                Question {currentQuestionIndex + 1} of {questions.length}
+                Question {currentQuestionIndex + 1} of {visibleQuestions.length}
               </span>
               <span className="text-sm font-medium text-foreground">
                 {Math.round(progress)}% Complete
@@ -978,7 +994,7 @@ function App() {
                   disabled={!currentAnswer || loading}
                   className="flex-1 bg-primary hover:bg-primary-700 text-primary-foreground"
                 >
-                  {currentQuestionIndex === questions.length - 1
+                  {currentQuestionIndex === visibleQuestions.length - 1
                     ? loading
                       ? "Submitting..."
                       : "Submit Assessment"

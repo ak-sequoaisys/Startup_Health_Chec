@@ -1,4 +1,4 @@
-from app.models import Question, QuestionOption, QuestionType, ComplianceCategory, RiskLevel, ApplicabilityRule, GovernmentSource
+from app.models import Question, QuestionOption, QuestionType, ComplianceCategory, RiskLevel, ApplicabilityRule, GovernmentSource, ConditionalRule
 
 QUESTIONS = [
     Question(
@@ -18,6 +18,85 @@ QUESTIONS = [
                 name="Ministry of Corporate Affairs",
                 url="https://www.mca.gov.in/",
                 description="Official portal for company registration and compliance"
+            )
+        ]
+    ),
+    Question(
+        id="q1a",
+        category=ComplianceCategory.REGISTRATION,
+        question_text="What type of business entity do you operate?",
+        question_type=QuestionType.MULTIPLE_CHOICE,
+        options=[
+            QuestionOption(id="q1a_partnership", text="Partnership firm", score=5, risk_level=RiskLevel.MODERATE),
+            QuestionOption(id="q1a_sole_proprietorship", text="Sole proprietorship", score=5, risk_level=RiskLevel.MODERATE),
+            QuestionOption(id="q1a_llp", text="LLP (Limited Liability Partnership)", score=5, risk_level=RiskLevel.MODERATE),
+        ],
+        help_text="Different business entities have different registration requirements under Indian law.",
+        weight=3,
+        conditional_rule=ConditionalRule(
+            depends_on_question="q1",
+            depends_on_answer="q1_no"
+        )
+    ),
+    Question(
+        id="q1b",
+        category=ComplianceCategory.REGISTRATION,
+        question_text="Is your partnership registered under Partnership Act with Registrar of Firms?",
+        question_type=QuestionType.YES_NO,
+        options=[
+            QuestionOption(id="q1b_yes", text="Yes", score=10, risk_level=RiskLevel.HEALTHY),
+            QuestionOption(id="q1b_no", text="No", score=0, risk_level=RiskLevel.HIGH_RISK),
+        ],
+        help_text="Registration under the Partnership Act provides legal recognition and protection to partnership firms.",
+        weight=3,
+        conditional_rule=ConditionalRule(
+            depends_on_question="q1a",
+            depends_on_answer="q1a_partnership"
+        ),
+        government_sources=[
+            GovernmentSource(
+                name="Registrar of Firms",
+                url="https://www.mca.gov.in/",
+                description="Partnership registration portal"
+            )
+        ]
+    ),
+    Question(
+        id="q1c",
+        category=ComplianceCategory.REGISTRATION,
+        question_text="As a sole proprietorship, please ensure you have all necessary local licenses and registrations.",
+        question_type=QuestionType.MULTIPLE_CHOICE,
+        options=[
+            QuestionOption(id="q1c_acknowledged", text="I understand and will check local license requirements", score=5, risk_level=RiskLevel.MODERATE),
+        ],
+        help_text="Sole proprietorships should verify local municipal licenses, trade licenses, and any industry-specific registrations required in their operating area.",
+        weight=2,
+        conditional_rule=ConditionalRule(
+            depends_on_question="q1a",
+            depends_on_answer="q1a_sole_proprietorship"
+        ),
+        is_informational=True
+    ),
+    Question(
+        id="q1d",
+        category=ComplianceCategory.REGISTRATION,
+        question_text="Is your LLP registered with the Registrar of LLPs?",
+        question_type=QuestionType.YES_NO,
+        options=[
+            QuestionOption(id="q1d_yes", text="Yes", score=10, risk_level=RiskLevel.HEALTHY),
+            QuestionOption(id="q1d_no", text="No", score=0, risk_level=RiskLevel.HIGH_RISK),
+        ],
+        help_text="LLP registration with the Registrar of LLPs is mandatory under the Limited Liability Partnership Act, 2008.",
+        weight=3,
+        conditional_rule=ConditionalRule(
+            depends_on_question="q1a",
+            depends_on_answer="q1a_llp"
+        ),
+        government_sources=[
+            GovernmentSource(
+                name="Ministry of Corporate Affairs - LLP",
+                url="https://www.mca.gov.in/",
+                description="Official portal for LLP registration and compliance"
             )
         ]
     ),

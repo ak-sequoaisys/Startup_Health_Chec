@@ -29,6 +29,11 @@ export interface GovernmentSource {
   description?: string;
 }
 
+export interface ConditionalRule {
+  depends_on_question: string;
+  depends_on_answer: string;
+}
+
 export interface Question {
   id: string;
   category: ComplianceCategory;
@@ -39,6 +44,8 @@ export interface Question {
   weight: number;
   applicability_rules?: ApplicabilityRule[];
   government_sources?: GovernmentSource[];
+  conditional_rule?: ConditionalRule;
+  is_informational?: boolean;
 }
 
 export interface Answer {
