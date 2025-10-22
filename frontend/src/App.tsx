@@ -75,32 +75,35 @@ function App() {
     }
     
     if (
-      contactInfo.email &&
-      contactInfo.company_name &&
-      contactInfo.employee_range &&
-      contactInfo.operating_states.length > 0 &&
-      contactInfo.consent
+      !contactInfo.email ||
+      !contactInfo.company_name ||
+      !contactInfo.employee_range ||
+      contactInfo.operating_states.length === 0 ||
+      !contactInfo.consent
     ) {
-      setLoading(true);
-      setError(null);
-      setEmailError(null);
-      try {
-        await startAssessment(contactInfo);
-        trackStartAssessment({
-          company_name: contactInfo.company_name,
-          industry: contactInfo.industry,
-          employee_range: contactInfo.employee_range,
-        });
-        setStep("assessment");
-      } catch (err: any) {
-        if (err?.response?.data?.detail && typeof err.response.data.detail === 'string' && err.response.data.detail.includes('email')) {
-          setEmailError(err.response.data.detail);
-        } else {
-          setError("Failed to start assessment. Please try again.");
-        }
-      } finally {
-        setLoading(false);
+      setError("Please fill in all required fields and accept the consent.");
+      return;
+    }
+    
+    setLoading(true);
+    setError(null);
+    setEmailError(null);
+    try {
+      await startAssessment(contactInfo);
+      trackStartAssessment({
+        company_name: contactInfo.company_name,
+        industry: contactInfo.industry,
+        employee_range: contactInfo.employee_range,
+      });
+      setStep("assessment");
+    } catch (err: any) {
+      if (err?.response?.data?.detail && typeof err.response.data.detail === 'string' && err.response.data.detail.includes('email')) {
+        setEmailError(err.response.data.detail);
+      } else {
+        setError("Failed to start assessment. Please try again.");
       }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -271,60 +274,391 @@ function App() {
 
   if (step === "intro") {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 p-4">
         <div className="absolute top-4 left-4">
           <a href="https://www.offrd.co" target="_blank" rel="noopener noreferrer">
-            <img src="/offrd-logo.png" alt="Offrd" className="h-12 w-auto" />
+            <img src="/offrd-logo.png" alt="Offrd - HR Compliance Solutions" className="h-12 w-auto" />
           </a>
         </div>
-        <Card className="max-w-2xl w-full">
-          <CardHeader className="text-center">
-            <CardTitle className="text-3xl font-bold text-foreground">
-              Startup Compliance Health Check
-            </CardTitle>
-            <CardDescription className="text-lg mt-4">
-              Evaluate your HR & labour compliance in just 15 minutes
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="space-y-4">
-              <div className="flex items-start gap-3">
-                <CheckCircle2 className="w-5 h-5 text-success mt-1 flex-shrink-0" />
-                <div>
-                  <h3 className="font-semibold">Comprehensive Assessment</h3>
-                  <p className="text-sm text-muted-foreground">
-                    15 questions covering all key compliance areas
-                  </p>
+        
+        <div className="max-w-6xl mx-auto pt-20">
+          {/* Main Hero Card */}
+          <Card className="max-w-2xl mx-auto mb-12">
+            <CardHeader className="text-center">
+              <CardTitle className="text-3xl font-bold text-foreground">
+                Startup Compliance Health Check
+              </CardTitle>
+              <CardDescription className="text-lg mt-4">
+                Evaluate your HR & labour compliance in just 15 minutes
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-4">
+                <div className="flex items-start gap-3">
+                  <CheckCircle2 className="w-5 h-5 text-success mt-1 flex-shrink-0" />
+                  <div>
+                    <h3 className="font-semibold">Comprehensive Assessment</h3>
+                    <p className="text-sm text-muted-foreground">
+                      15 questions covering all key compliance areas
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <CheckCircle2 className="w-5 h-5 text-success mt-1 flex-shrink-0" />
+                  <div>
+                    <h3 className="font-semibold">Instant Results</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Get your compliance score and personalized recommendations
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <CheckCircle2 className="w-5 h-5 text-success mt-1 flex-shrink-0" />
+                  <div>
+                    <h3 className="font-semibold">Actionable Insights</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Identify priority areas and get expert guidance
+                    </p>
+                  </div>
                 </div>
               </div>
-              <div className="flex items-start gap-3">
-                <CheckCircle2 className="w-5 h-5 text-success mt-1 flex-shrink-0" />
-                <div>
-                  <h3 className="font-semibold">Instant Results</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Get your compliance score and personalized recommendations
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <CheckCircle2 className="w-5 h-5 text-success mt-1 flex-shrink-0" />
-                <div>
-                  <h3 className="font-semibold">Actionable Insights</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Identify priority areas and get expert guidance
-                  </p>
-                </div>
-              </div>
+              <Button
+                onClick={handleStartAssessment}
+                className="w-full bg-primary hover:bg-primary-700 text-primary-foreground text-xl font-bold py-6 shadow-lg hover:shadow-xl transition-all uppercase tracking-wide"
+                size="lg"
+              >
+                Start Assessment
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Content Section */}
+          <div className="mt-12 mb-12">
+            {/* Section Header */}
+            <div className="text-center mb-12">
+              <h2 className="text-4xl font-bold text-foreground mb-4">
+                Comprehensive Employment Compliance Coverage
+              </h2>
+              <p className="text-xl text-muted-foreground max-w-4xl mx-auto">
+                Our assessment evaluates your compliance across all major Indian employment laws 
+                and regulations, covering both central and state-specific requirements
+              </p>
             </div>
-            <Button
-              onClick={handleStartAssessment}
-              className="w-full bg-primary hover:bg-primary-700 text-primary-foreground"
-              size="lg"
-            >
-              Start Assessment
-            </Button>
-          </CardContent>
-        </Card>
+
+            {/* Compliance Areas Grid */}
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+              {/* Employment Contracts */}
+              <Card className="border-2 hover:border-primary transition-all hover:shadow-lg">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-3 text-lg">
+                    <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center text-2xl">
+                      📄
+                    </div>
+                    <span>Employment Contracts</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Proper employment documentation including contracts, appointment letters, 
+                    and statutory registers as per Industrial Employment Act requirements.
+                  </p>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-sm">
+                      <CheckCircle2 className="w-4 h-4 text-primary" />
+                      <span>Contract templates and clauses</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <CheckCircle2 className="w-4 h-4 text-primary" />
+                      <span>Appointment letter requirements</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <CheckCircle2 className="w-4 h-4 text-primary" />
+                      <span>Statutory register maintenance</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Wages & Payments */}
+              <Card className="border-2 hover:border-warning transition-all hover:shadow-lg">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-3 text-lg">
+                    <div className="w-12 h-12 rounded-lg bg-warning/10 flex items-center justify-center text-2xl">
+                      💰
+                    </div>
+                    <span>Wages & Payments</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Compliance with Minimum Wages Act and Payment of Wages Act including 
+                    timely salary disbursement and proper wage structure.
+                  </p>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-sm">
+                      <CheckCircle2 className="w-4 h-4 text-warning" />
+                      <span>Minimum wage compliance</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <CheckCircle2 className="w-4 h-4 text-warning" />
+                      <span>Payment timelines</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <CheckCircle2 className="w-4 h-4 text-warning" />
+                      <span>Wage register maintenance</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* PF & ESI */}
+              <Card className="border-2 hover:border-success transition-all hover:shadow-lg">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-3 text-lg">
+                    <div className="w-12 h-12 rounded-lg bg-success/10 flex items-center justify-center text-2xl">
+                      🏥
+                    </div>
+                    <span>PF & ESI</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Provident Fund and Employee State Insurance registration, contributions, 
+                    and compliance for applicable establishments.
+                  </p>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-sm">
+                      <CheckCircle2 className="w-4 h-4 text-success" />
+                      <span>PF registration (20+ employees)</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <CheckCircle2 className="w-4 h-4 text-success" />
+                      <span>ESI coverage (10+ employees)</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <CheckCircle2 className="w-4 h-4 text-success" />
+                      <span>Monthly contribution filing</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Workplace Safety */}
+              <Card className="border-2 hover:border-danger transition-all hover:shadow-lg">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-3 text-lg">
+                    <div className="w-12 h-12 rounded-lg bg-danger/10 flex items-center justify-center text-2xl">
+                      ⚠️
+                    </div>
+                    <span>Workplace Safety</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Occupational safety and health compliance including safety registers, 
+                    equipment maintenance, and regular safety audits.
+                  </p>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-sm">
+                      <CheckCircle2 className="w-4 h-4 text-danger" />
+                      <span>Safety register maintenance</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <CheckCircle2 className="w-4 h-4 text-danger" />
+                      <span>First aid facilities</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <CheckCircle2 className="w-4 h-4 text-danger" />
+                      <span>Regular safety audits</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* POSH Compliance */}
+              <Card className="border-2 hover:border-primary transition-all hover:shadow-lg">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-3 text-lg">
+                    <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center text-2xl">
+                      🛡️
+                    </div>
+                    <span>POSH Compliance</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Sexual Harassment of Women at Workplace Act compliance including 
+                    Internal Complaints Committee setup and awareness programs.
+                  </p>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-sm">
+                      <CheckCircle2 className="w-4 h-4 text-primary" />
+                      <span>ICC formation (10+ employees)</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <CheckCircle2 className="w-4 h-4 text-primary" />
+                      <span>Policy documentation</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <CheckCircle2 className="w-4 h-4 text-primary" />
+                      <span>Annual awareness training</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* State-Specific Laws */}
+              <Card className="border-2 hover:border-warning transition-all hover:shadow-lg">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-3 text-lg">
+                    <div className="w-12 h-12 rounded-lg bg-warning/10 flex items-center justify-center text-2xl">
+                      📍
+                    </div>
+                    <span>State-Specific Laws</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Shops and Establishments Acts and other state-specific regulations 
+                    that vary across Indian states and union territories.
+                  </p>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2 text-sm">
+                      <CheckCircle2 className="w-4 h-4 text-warning" />
+                      <span>State registration requirements</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <CheckCircle2 className="w-4 h-4 text-warning" />
+                      <span>Working hours regulations</span>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm">
+                      <CheckCircle2 className="w-4 h-4 text-warning" />
+                      <span>Leave policy compliance</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Key Laws Section */}
+            <Card className="mb-12">
+              <CardHeader className="text-center">
+                <CardTitle className="text-3xl">Key Indian Employment Laws Covered</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="p-4 bg-muted/50 rounded-lg hover:bg-primary/5 transition-colors">
+                    <h4 className="font-semibold mb-1">Minimum Wages Act</h4>
+                    <p className="text-xs text-primary font-medium mb-2">1948</p>
+                    <p className="text-sm text-muted-foreground">
+                      Ensures payment of minimum wages to workers across different industries and states
+                    </p>
+                  </div>
+                  <div className="p-4 bg-muted/50 rounded-lg hover:bg-primary/5 transition-colors">
+                    <h4 className="font-semibold mb-1">Payment of Wages Act</h4>
+                    <p className="text-xs text-primary font-medium mb-2">1936</p>
+                    <p className="text-sm text-muted-foreground">
+                      Regulates timely payment of wages and prohibits unauthorized deductions
+                    </p>
+                  </div>
+                  <div className="p-4 bg-muted/50 rounded-lg hover:bg-primary/5 transition-colors">
+                    <h4 className="font-semibold mb-1">Employees' Provident Fund Act</h4>
+                    <p className="text-xs text-primary font-medium mb-2">1952</p>
+                    <p className="text-sm text-muted-foreground">
+                      Mandates provident fund contributions for establishments with 20 or more employees
+                    </p>
+                  </div>
+                  <div className="p-4 bg-muted/50 rounded-lg hover:bg-primary/5 transition-colors">
+                    <h4 className="font-semibold mb-1">ESI Act</h4>
+                    <p className="text-xs text-primary font-medium mb-2">1948</p>
+                    <p className="text-sm text-muted-foreground">
+                      Provides medical and cash benefits to employees earning up to specified limits
+                    </p>
+                  </div>
+                  <div className="p-4 bg-muted/50 rounded-lg hover:bg-primary/5 transition-colors">
+                    <h4 className="font-semibold mb-1">Industrial Employment Act</h4>
+                    <p className="text-xs text-primary font-medium mb-2">1946</p>
+                    <p className="text-sm text-muted-foreground">
+                      Defines employment conditions and requires maintenance of standing orders
+                    </p>
+                  </div>
+                  <div className="p-4 bg-muted/50 rounded-lg hover:bg-primary/5 transition-colors">
+                    <h4 className="font-semibold mb-1">POSH Act</h4>
+                    <p className="text-xs text-primary font-medium mb-2">2013</p>
+                    <p className="text-sm text-muted-foreground">
+                      Prevents and addresses sexual harassment at workplace through ICC mechanism
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Bottom Info Cards */}
+            <div className="grid md:grid-cols-2 gap-6">
+              <Card className="border-2 border-primary bg-gradient-to-br from-primary/5 to-primary/10">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-primary flex items-center justify-center text-white text-xl">
+                      📊
+                    </div>
+                    <span>Assessment Coverage</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Our comprehensive assessment evaluates your compliance across multiple dimensions 
+                    of Indian employment law.
+                  </p>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center py-2 border-b">
+                      <span className="text-sm">Compliance Areas</span>
+                      <span className="font-semibold">7 Major Categories</span>
+                    </div>
+                    <div className="flex justify-between items-center py-2 border-b">
+                      <span className="text-sm">Assessment Questions</span>
+                      <span className="font-semibold">15 Questions</span>
+                    </div>
+                    <div className="flex justify-between items-center py-2">
+                      <span className="text-sm">State Coverage</span>
+                      <span className="font-semibold">All Indian States</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-2 border-success bg-gradient-to-br from-success/5 to-success/10">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-success flex items-center justify-center text-white text-xl">
+                      ✓
+                    </div>
+                    <span>What You'll Receive</span>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Get detailed insights and actionable recommendations to improve your 
+                    compliance posture.
+                  </p>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center py-2 border-b">
+                      <span className="text-sm">Compliance Score</span>
+                      <span className="font-semibold">Instant Results</span>
+                    </div>
+                    <div className="flex justify-between items-center py-2 border-b">
+                      <span className="text-sm">Risk Assessment</span>
+                      <span className="font-semibold">Priority Areas</span>
+                    </div>
+                    <div className="flex justify-between items-center py-2">
+                      <span className="text-sm">Recommendations</span>
+                      <span className="font-semibold">Action Steps</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
