@@ -1194,8 +1194,7 @@ function App() {
               <div className="bg-gradient-to-br from-primary/10 to-accent p-8 rounded-xl text-center border-2 border-primary/20">
                 <h3 className="text-2xl font-bold mb-3">Ready to Achieve Full Compliance?</h3>
                 <p className="text-foreground text-lg mb-6 max-w-2xl mx-auto">
-                  Our compliance experts at Offrd can help you address these gaps and ensure
-                  your business meets all Indian HR and labour compliance requirements.
+                  Our platform automates HR and labour compliance for Indian businesses — from offer letters, payslips, attendance, and policy manuals. Offrd helps you close compliance gaps and stay audit-ready with ease.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-4 justify-center">
                   <Button 
