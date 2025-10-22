@@ -874,13 +874,13 @@ function App() {
 
   if (step === "assessment" && currentQuestion) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 p-4 py-8">
+      <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 p-4 py-8 flex flex-col">
         <div className="absolute top-4 left-4">
           <a href="https://www.offrd.co" target="_blank" rel="noopener noreferrer">
             <img src="/offrd-logo.png" alt="Offrd" className="h-12 w-auto" />
           </a>
         </div>
-        <div className="max-w-3xl mx-auto">
+        <div className="max-w-3xl mx-auto flex-grow">
           <div className="mb-6">
             <div className="flex justify-between items-center mb-2">
               <span className="text-sm font-medium text-foreground">
@@ -988,6 +988,10 @@ function App() {
             </CardContent>
           </Card>
         </div>
+        <footer className="mt-8 text-center text-sm text-muted-foreground">
+          <div>www.offrd.co</div>
+          <div>© Copyright Offrd</div>
+        </footer>
       </div>
     );
   }
