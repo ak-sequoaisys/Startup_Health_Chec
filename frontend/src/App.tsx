@@ -741,22 +741,46 @@ function App() {
               <Separator className="my-8" />
 
               <div>
-                <div className="flex items-center gap-2 mb-4">
-                  <AlertTriangle className="w-6 h-6 text-danger" />
-                  <h3 className="text-2xl font-bold">Top Priority Actions</h3>
-                </div>
-                <div className="space-y-3">
-                  {result.priority_actions.slice(0, 5).map((action, index) => (
-                    <Alert key={index} className="border-l-4 border-l-danger bg-danger/5">
-                      <AlertDescription className="flex items-start gap-3">
-                        <span className="flex-shrink-0 w-7 h-7 rounded-full bg-danger text-white font-bold flex items-center justify-center text-sm">
-                          {index + 1}
-                        </span>
-                        <span className="text-base">{action}</span>
-                      </AlertDescription>
-                    </Alert>
-                  ))}
-                </div>
+                {(() => {
+                  const hasRealActions = result.priority_actions.some(action => 
+                    action.includes("HIGH RISK") || action.includes("MODERATE")
+                  );
+                  
+                  return (
+                    <>
+                      <div className="flex items-center gap-2 mb-4">
+                        {hasRealActions ? (
+                          <AlertTriangle className="w-6 h-6 text-danger" />
+                        ) : (
+                          <CheckCircle2 className="w-6 h-6 text-success" />
+                        )}
+                        <h3 className="text-2xl font-bold">Top Priority Actions</h3>
+                      </div>
+                      <div className="space-y-3">
+                        {result.priority_actions.slice(0, 5).map((action, index) => (
+                          <Alert 
+                            key={index} 
+                            className={hasRealActions 
+                              ? "border-l-4 border-l-danger bg-danger/5" 
+                              : "border-l-4 border-l-success bg-success/5"
+                            }
+                          >
+                            <AlertDescription className="flex items-start gap-3">
+                              <span 
+                                className={`flex-shrink-0 w-7 h-7 rounded-full ${
+                                  hasRealActions ? "bg-danger" : "bg-success"
+                                } text-white font-bold flex items-center justify-center text-sm`}
+                              >
+                                {index + 1}
+                              </span>
+                              <span className="text-base">{action}</span>
+                            </AlertDescription>
+                          </Alert>
+                        ))}
+                      </div>
+                    </>
+                  );
+                })()}
               </div>
 
               <Separator className="my-8" />
